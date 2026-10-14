@@ -19,5 +19,3 @@ built from the v1 Branded Prototype. UI only: data comes from `lib/mock-data.ts`
 
 Search the code for `TODO:` to find every place a server action or Better Auth call goes.
 Remove the "Preview" links on the login page once auth is wired up.
-
-Account switching test?
