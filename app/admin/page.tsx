@@ -18,7 +18,9 @@ export default function StaffDashboard() {
         title="Dashboard"
         action={
           <Button asChild>
-            <Link href="/admin/events/new" className="no-underline"><Plus /> New event</Link>
+            <Link href="/admin/events/new" className="no-underline">
+              <Plus /> New event
+            </Link>
           </Button>
         }
       />
@@ -33,12 +35,19 @@ export default function StaffDashboard() {
             <ul className="divide-y">
               {activity.slice(0, 4).map((a) => (
                 <li key={a.id} className="py-3 text-xs first:pt-0">
-                  <p><strong>{a.who}</strong> {a.summary}</p>
-                  <p className="mt-0.5 text-muted-foreground">{a.relative}</p>
+                  <p>
+                    <strong>{a.who}</strong> {a.summary}
+                  </p>
+                  <p className="text-muted-foreground mt-0.5">{a.relative}</p>
                 </li>
               ))}
             </ul>
-            <Link href="/admin/activity" className="text-xs text-primary underline">View full log</Link>
+            <Link
+              href="/admin/activity"
+              className="text-primary text-xs underline"
+            >
+              View full log
+            </Link>
           </CardContent>
         </Card>
       </div>

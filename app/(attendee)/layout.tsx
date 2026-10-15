@@ -8,7 +8,11 @@ const nav = [
   { href: "/login", label: "Log out" },
 ];
 
-export default function AttendeeLayout({ children }: { children: React.ReactNode }) {
+export default function AttendeeLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <>
       <SiteHeader nav={nav} homeHref="/dashboard" />

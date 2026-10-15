@@ -14,18 +14,25 @@ function EventCard({ event }: { event: MyEvent }) {
   return (
     <Link
       href={`/events/${event.id}`}
-      className="group block rounded-lg border bg-card p-3 no-underline shadow-xs hover:border-hers-blue-light focus-visible:border-primary"
+      className="group bg-card hover:border-hers-blue-light focus-visible:border-primary block rounded-lg border p-3 no-underline shadow-xs"
     >
-      <div className="flex h-20 items-end rounded-md bg-hers-panel px-4 pb-3">
-        <span className="text-xs font-semibold text-primary/70">{event.dateLabel}</span>
+      <div className="bg-hers-panel flex h-20 items-end rounded-md px-4 pb-3">
+        <span className="text-primary/70 text-xs font-semibold">
+          {event.dateLabel}
+        </span>
       </div>
-      <div className="px-2 pb-1 pt-3">
+      <div className="px-2 pt-3 pb-1">
         <div className="flex items-start justify-between gap-3">
-          <h3 className="text-base font-bold text-primary group-hover:underline">{event.name}</h3>
-          {event.unread > 0 && !expired && <Badge variant="coral">{event.unread} unread</Badge>}
+          <h3 className="text-primary text-base font-bold group-hover:underline">
+            {event.name}
+          </h3>
+          {event.unread > 0 && !expired && (
+            <Badge variant="coral">{event.unread} unread</Badge>
+          )}
         </div>
-        <p className="mt-1 text-xs text-muted-foreground">
-          {event.dateLabel} · {event.location.split(",").at(-2)?.trim() ?? event.location}
+        <p className="text-muted-foreground mt-1 text-xs">
+          {event.dateLabel} ·{" "}
+          {event.location.split(",").at(-2)?.trim() ?? event.location}
         </p>
         <Badge className="mt-3" variant={expired ? "muted" : "default"}>
           {expired ? "Read-only" : "Active"}
@@ -43,7 +50,7 @@ export default function DashboardPage() {
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
       <div className="mb-6 flex items-center justify-between gap-4">
-        <h1 className="text-2xl font-bold text-primary">My events</h1>
+        <h1 className="text-primary text-2xl font-bold">My events</h1>
         <Button asChild>
           <Link href="/dashboard/add-event" className="no-underline">
             <Plus /> Add an event
@@ -52,21 +59,35 @@ export default function DashboardPage() {
       </div>
 
       <section aria-labelledby="current-heading" className="mb-8">
-        <h2 id="current-heading" className="mb-3 text-sm font-bold text-primary">Current &amp; upcoming</h2>
+        <h2
+          id="current-heading"
+          className="text-primary mb-3 text-sm font-bold"
+        >
+          Current &amp; upcoming
+        </h2>
         {current.length ? (
           <div className="grid gap-4 sm:grid-cols-2">
-            {current.map((e) => <EventCard key={e.id} event={e} />)}
+            {current.map((e) => (
+              <EventCard key={e.id} event={e} />
+            ))}
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground">No upcoming events. Add one with the access key from your invitation.</p>
+          <p className="text-muted-foreground text-sm">
+            No upcoming events. Add one with the access key from your
+            invitation.
+          </p>
         )}
       </section>
 
       {past.length > 0 && (
         <section aria-labelledby="past-heading">
-          <h2 id="past-heading" className="mb-3 text-sm font-bold text-primary">Past events</h2>
+          <h2 id="past-heading" className="text-primary mb-3 text-sm font-bold">
+            Past events
+          </h2>
           <div className="grid gap-4 sm:grid-cols-2">
-            {past.map((e) => <EventCard key={e.id} event={e} />)}
+            {past.map((e) => (
+              <EventCard key={e.id} event={e} />
+            ))}
           </div>
         </section>
       )}

@@ -7,7 +7,7 @@ export const metadata: Metadata = { title: "Sign in" };
 export default function LoginPage() {
   return (
     <>
-      <h1 className="mb-6 text-2xl font-bold text-primary">Sign in</h1>
+      <h1 className="text-primary mb-6 text-2xl font-bold">Sign in</h1>
       <LoginForm />
       <div className="mt-4 flex flex-wrap justify-between gap-2 text-xs">
         <Link href="/forgot-password" className="text-primary underline">
@@ -18,9 +18,15 @@ export default function LoginPage() {
         </Link>
       </div>
       {/* Prototype-only shortcuts. Remove once Better Auth is wired up. */}
-      <p className="mt-8 text-center text-xs text-muted-foreground">
-        Preview: <Link href="/dashboard" className="text-primary underline">attendee side</Link> ·{" "}
-        <Link href="/admin" className="text-primary underline">staff side</Link>
+      <p className="text-muted-foreground mt-8 text-center text-xs">
+        Preview:{" "}
+        <Link href="/dashboard" className="text-primary underline">
+          attendee side
+        </Link>{" "}
+        ·{" "}
+        <Link href="/admin" className="text-primary underline">
+          staff side
+        </Link>
       </p>
     </>
   );

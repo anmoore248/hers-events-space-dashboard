@@ -9,10 +9,16 @@ export const metadata: Metadata = { title: "Settings" };
 export default function SettingsPage() {
   return (
     <div className="max-w-2xl">
-      <PageTitle title="Settings" description="Organization-wide values shown across the platform." />
+      <PageTitle
+        title="Settings"
+        description="Organization-wide values shown across the platform."
+      />
       <Card>
         <CardContent className="pt-5">
-          <SettingsForm defaultValues={settings} lastChanged={settings.lastChanged} />
+          <SettingsForm
+            defaultValues={settings}
+            lastChanged={settings.lastChanged}
+          />
         </CardContent>
       </Card>
     </div>

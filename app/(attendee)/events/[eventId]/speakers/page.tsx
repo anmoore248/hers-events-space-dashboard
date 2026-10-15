@@ -1,7 +1,11 @@
 import { SpeakersList } from "@/components/attendee/speakers-list";
 import { byEvent, sessionsForSpeaker, speakers } from "@/lib/mock-data";
 
-export default async function SpeakersPage({ params }: { params: Promise<{ eventId: string }> }) {
+export default async function SpeakersPage({
+  params,
+}: {
+  params: Promise<{ eventId: string }>;
+}) {
   const { eventId } = await params;
   const rows = byEvent(speakers, eventId).map((s) => ({
     id: s.id,

@@ -27,11 +27,16 @@ export default async function EventLayout({
 
   return (
     <>
-      <div className="border-b bg-background px-4 pt-5 sm:px-6 print:hidden">
+      <div className="bg-background border-b px-4 pt-5 sm:px-6 print:hidden">
         <div className="mx-auto max-w-5xl">
-          <Breadcrumb items={[{ label: "My events", href: "/dashboard" }, { label: event.name }]} />
-          <h1 className="text-2xl font-bold text-primary">{event.name}</h1>
-          <p className="mb-3 mt-1 text-xs text-muted-foreground">
+          <Breadcrumb
+            items={[
+              { label: "My events", href: "/dashboard" },
+              { label: event.name },
+            ]}
+          />
+          <h1 className="text-primary text-2xl font-bold">{event.name}</h1>
+          <p className="text-muted-foreground mt-1 mb-3 text-xs">
             {event.dateLabel} · {city} · Times shown in {event.tzLabel}
           </p>
           <TabNav base={`/events/${event.id}`} tabs={tabs} />

@@ -8,7 +8,10 @@ export const metadata: Metadata = { title: "People" };
 export default function PeoplePage() {
   return (
     <div className="max-w-5xl">
-      <PageTitle title="People" description="Search every account across all events." />
+      <PageTitle
+        title="People"
+        description="Search every account across all events."
+      />
       <PeopleSearch people={people} />
     </div>
   );
