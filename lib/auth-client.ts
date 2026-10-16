@@ -5,6 +5,8 @@ export const authClient = createAuthClient({
   // ... your existing config
   plugins: [
     // ... other plugins
-    sentinelClient(),
+    sentinelClient({
+      identifyUrl: process.env.BETTER_AUTH_IDENTIFY_URL,
+    }),
   ],
 });

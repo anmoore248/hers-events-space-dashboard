@@ -1,5 +1,5 @@
 import { betterAuth } from "better-auth";
-import { dash } from "@better-auth/infra";
+import { dash, sentinel } from "@better-auth/infra";
 
 export const auth = betterAuth({
   // ... your existing config
@@ -8,5 +8,6 @@ export const auth = betterAuth({
     dash({
       apiKey: process.env.BETTER_AUTH_API_KEY,
     }),
+    sentinel(),
   ],
 });
