@@ -1,12 +1,7 @@
-import { createAuthClient } from "better-auth/client";
-import { sentinelClient } from "@better-auth/infra/client";
+import { createAuthClient } from "better-auth/react";
+import { adminClient } from "better-auth/client/plugins";
+import { ac, attendee, staff } from "@/lib/permissions";
 
 export const authClient = createAuthClient({
-  // ... your existing config
-  plugins: [
-    // ... other plugins
-    sentinelClient({
-      identifyUrl: process.env.BETTER_AUTH_IDENTIFY_URL,
-    }),
-  ],
+  plugins: [adminClient({ ac, roles: { staff, attendee } })],
 });
