@@ -15,7 +15,12 @@ type Values = z.infer<typeof changePasswordSchema>;
 /** Used by /account (attendees) and /admin/account (staff). */
 export function ChangePasswordForm() {
   const [done, setDone] = React.useState(false);
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<Values>({ resolver: zodResolver(changePasswordSchema) });
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<Values>({ resolver: zodResolver(changePasswordSchema) });
 
   return (
     <Card>
@@ -32,17 +37,52 @@ export function ChangePasswordForm() {
             setDone(true);
           })}
         >
-          <FormField label="Current password" htmlFor="currentPassword" error={errors.currentPassword?.message}>
-            <Input id="currentPassword" type="password" autoComplete="current-password" {...register("currentPassword")} />
+          <FormField
+            label="Current password"
+            htmlFor="currentPassword"
+            error={errors.currentPassword?.message}
+          >
+            <Input
+              id="currentPassword"
+              type="password"
+              autoComplete="current-password"
+              {...register("currentPassword")}
+            />
           </FormField>
-          <FormField label="New password" htmlFor="newPassword" hint="At least 10 characters." error={errors.newPassword?.message}>
-            <Input id="newPassword" type="password" autoComplete="new-password" {...register("newPassword")} />
+          <FormField
+            label="New password"
+            htmlFor="newPassword"
+            hint="At least 10 characters."
+            error={errors.newPassword?.message}
+          >
+            <Input
+              id="newPassword"
+              type="password"
+              autoComplete="new-password"
+              {...register("newPassword")}
+            />
           </FormField>
-          <FormField label="Confirm new password" htmlFor="confirmPassword" error={errors.confirmPassword?.message}>
-            <Input id="confirmPassword" type="password" autoComplete="new-password" {...register("confirmPassword")} />
+          <FormField
+            label="Confirm new password"
+            htmlFor="confirmPassword"
+            error={errors.confirmPassword?.message}
+          >
+            <Input
+              id="confirmPassword"
+              type="password"
+              autoComplete="new-password"
+              {...register("confirmPassword")}
+            />
           </FormField>
-          <Button type="submit" className="w-full">Update password</Button>
-          <p aria-live="polite" className="text-center text-xs text-muted-foreground">{done && "Password updated."}</p>
+          <Button type="submit" className="w-full">
+            Update password
+          </Button>
+          <p
+            aria-live="polite"
+            className="text-muted-foreground text-center text-xs"
+          >
+            {done && "Password updated."}
+          </p>
         </form>
       </CardContent>
     </Card>
