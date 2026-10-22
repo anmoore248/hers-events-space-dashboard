@@ -1,8 +1,8 @@
 import { StaffSpeakersList } from "@/components/staff/staff-speakers-list";
-import { byEvent, sessionsForSpeaker, speakers } from "@/lib/mock-data";
+import { getSpeakers, requireStaffPage } from "@/lib/data";
 
 export default async function StaffSpeakersPage({ params }: { params: Promise<{ eventId: string }> }) {
+  await requireStaffPage();
   const { eventId } = await params;
-  const rows = byEvent(speakers, eventId).map((s) => ({ ...s, sessionCount: sessionsForSpeaker(s.id).length }));
-  return <StaffSpeakersList eventId={eventId} initial={rows} />;
+  return <StaffSpeakersList eventId={eventId} speakers={await getSpeakers(eventId)} />;
 }

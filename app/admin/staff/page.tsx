@@ -1,13 +1,14 @@
 import type { Metadata } from "next";
 import { StaffTable } from "@/components/staff/staff-table";
-import { staffMembers } from "@/lib/mock-data";
+import { getStaffRows, requireStaffPage } from "@/lib/data";
 
 export const metadata: Metadata = { title: "Staff" };
 
-export default function StaffPage() {
+export default async function StaffPage() {
+  await requireStaffPage();
   return (
     <div className="max-w-5xl">
-      <StaffTable staff={staffMembers} />
+      <StaffTable rows={await getStaffRows()} />
     </div>
   );
 }

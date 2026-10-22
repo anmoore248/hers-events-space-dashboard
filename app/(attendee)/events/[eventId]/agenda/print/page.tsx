@@ -1,9 +1,11 @@
 import Image from "next/image";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { groupByTimeSlot } from "@/lib/agenda";
-import { formatDayFull, formatTime } from "@/lib/format";
-import { agendaSessions, byEvent, getEvent, getSpeaker, getTrack } from "@/lib/mock-data";
+import { formatDayFull, formatTime, tzLabel } from "@/lib/format";
+import { getAgenda, getEvent } from "@/lib/data";
 import { PrintButton } from "@/components/attendee/print-button";
+import { EmptyState } from "@/components/empty-state";
 
 /**
  * Print-ready agenda (doc §11.3): black and white, grayscale logo, each day on
@@ -12,16 +14,20 @@ import { PrintButton } from "@/components/attendee/print-button";
  */
 export default async function PrintAgendaPage({ params }: { params: Promise<{ eventId: string }> }) {
   const { eventId } = await params;
-  const event = getEvent(eventId)!;
-  const sessions = byEvent(agendaSessions, eventId);
+  const [event, { sessions, tracks, speakers }] = await Promise.all([getEvent(eventId), getAgenda(eventId)]);
+  if (!event) notFound();
+
   const days = [...new Set(sessions.map((s) => s.date))].sort();
+  const tz = tzLabel(event.timeZone);
 
   return (
     <div className="mx-auto max-w-3xl">
       <div className="mb-4 flex items-center justify-between gap-3 print:hidden">
         <Link href={`/events/${eventId}/agenda`} className="text-xs text-primary underline">Back to agenda</Link>
-        <PrintButton />
+        {days.length > 0 && <PrintButton />}
       </div>
+
+      {days.length === 0 && <EmptyState title="There is no agenda to print yet." />}
 
       {days.map((day, i) => (
         <section
@@ -32,14 +38,14 @@ export default async function PrintAgendaPage({ params }: { params: Promise<{ ev
             <Image src="/hers-logo-grayscale.png" alt="HERS" width={2805} height={364} className="h-6 w-auto" />
             <div className="text-right">
               <p className="font-bold">{event.name}</p>
-              <p className="text-sm">{formatDayFull(day)} · Times in {event.tzLabel}</p>
+              <p className="text-sm">{formatDayFull(day)} · Times in {tz}</p>
             </div>
           </header>
 
           {groupByTimeSlot(sessions.filter((s) => s.date === day)).map((slot) =>
             slot.sessions.map((s, j) => {
-              const track = getTrack(s.trackId);
-              const names = s.speakerIds.map((id) => getSpeaker(id)?.name).filter(Boolean).join(", ");
+              const track = tracks.find((t) => t.id === s.trackId);
+              const names = s.speakerIds.map((id) => speakers.find((sp) => sp.id === id)?.name).filter(Boolean).join(", ");
               return (
                 <div key={s.id} className="grid break-inside-avoid grid-cols-[6rem_1fr] gap-4 border-b border-black/40 py-2 text-sm">
                   <div className="font-bold">{j === 0 ? formatTime(slot.start) : ""}</div>

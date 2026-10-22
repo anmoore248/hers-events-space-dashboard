@@ -3,13 +3,15 @@
 import { ArrowDown, ArrowUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-export function ReorderButtons({ label, index, count, onMove }: { label: string; index: number; count: number; onMove: (from: number, to: number) => void }) {
+export function ReorderButtons({
+  label, index, count, onMove, disabled = false,
+}: { label: string; index: number; count: number; onMove: (from: number, to: number) => void; disabled?: boolean }) {
   return (
     <div className="flex gap-1">
-      <Button variant="outline" size="icon" aria-label={`Move ${label} up`} disabled={index === 0} onClick={() => onMove(index, index - 1)}>
+      <Button type="button" variant="outline" size="icon" aria-label={`Move ${label} up`} disabled={disabled || index === 0} onClick={() => onMove(index, index - 1)}>
         <ArrowUp />
       </Button>
-      <Button variant="outline" size="icon" aria-label={`Move ${label} down`} disabled={index === count - 1} onClick={() => onMove(index, index + 1)}>
+      <Button type="button" variant="outline" size="icon" aria-label={`Move ${label} down`} disabled={disabled || index === count - 1} onClick={() => onMove(index, index + 1)}>
         <ArrowDown />
       </Button>
     </div>

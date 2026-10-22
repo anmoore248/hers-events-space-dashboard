@@ -3,6 +3,7 @@
 import * as React from "react";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { EmptyState } from "@/components/empty-state";
 
 /** Heading + count + client-side search box. Fine for HERS-sized lists (≤ ~200). */
 export function SearchableList<T>({
@@ -13,6 +14,7 @@ export function SearchableList<T>({
   renderItem,
   getKey,
   emptyText = "No matches. Try a different search.",
+  noItemsText = "Nothing here yet.",
 }: {
   title: string;
   items: T[];
@@ -21,6 +23,7 @@ export function SearchableList<T>({
   renderItem: (item: T) => React.ReactNode;
   getKey: (item: T) => string;
   emptyText?: string;
+  noItemsText?: string;
 }) {
   const [q, setQ] = React.useState("");
   const query = q.trim().toLowerCase();
@@ -39,7 +42,9 @@ export function SearchableList<T>({
           <Input id={id} type="search" placeholder={placeholder} value={q} onChange={(e) => setQ(e.target.value)} className="pl-9" />
         </div>
       </div>
-      {filtered.length ? (
+      {items.length === 0 ? (
+        <EmptyState title={noItemsText} />
+      ) : filtered.length ? (
         <ul className="overflow-hidden rounded-lg border bg-card">
           {filtered.map((item) => (
             <li key={getKey(item)} className="border-b last:border-b-0">{renderItem(item)}</li>

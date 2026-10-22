@@ -1,16 +1,11 @@
+import { notFound } from "next/navigation";
 import { CheckInTable } from "@/components/staff/check-in-table";
-import { byEvent, checkInPoints, enrollments } from "@/lib/mock-data";
+import { getCheckInSheet, getEvent, requireStaffPage } from "@/lib/data";
 
 export default async function CheckInPage({ params }: { params: Promise<{ eventId: string }> }) {
+  await requireStaffPage();
   const { eventId } = await params;
-  const points = byEvent(checkInPoints, eventId);
-  return (
-    <CheckInTable
-      eventId={eventId}
-      points={points.length ? points : [{ id: "arrival", eventId, label: "Arrival", checkedIn: 0 }]}
-      initial={byEvent(enrollments, eventId).filter((e) => e.status === "active")}
-      total={68}
-      demoCheckedIn={42}
-    />
-  );
+  const [event, sheet] = await Promise.all([getEvent(eventId), getCheckInSheet(eventId)]);
+  if (!event) notFound();
+  return <CheckInTable eventId={eventId} timeZone={event.timeZone} sheet={sheet} />;
 }

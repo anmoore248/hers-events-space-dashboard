@@ -2,68 +2,49 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
+import { FormError } from "@/components/form-error";
+import { useAction } from "@/hooks/use-action";
+import { importAttendees } from "@/lib/actions/attendees";
 import { Check } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { attendeeCsvRow } from "@/lib/schemas";
-import { CSV_COLUMNS, parseCsv } from "@/lib/csv";
+import { CSV_COLUMNS } from "@/lib/csv";
+import { buildImportPreview, unknownSubcommittees, type ImportRow } from "@/lib/import";
 import { cn } from "@/lib/utils";
 
-type Kind = "new" | "error" | "existing" | "unknown-sub";
-type PreviewRow = { line: number; email: string; name: string; subs: string[]; kind: Kind; issue?: string };
-
-function buildPreview(text: string, existing: string[], known: string[]) {
-  const [header, ...body] = parseCsv(text);
-  const cols = header.map((h) => h.trim().toLowerCase());
-  const seen = new Map<string, number>();
-  const knownLower = known.map((k) => k.toLowerCase());
-
-  return body.map((cells, i): PreviewRow => {
-    const line = i + 2;
-    const raw = Object.fromEntries(CSV_COLUMNS.map((c) => [c, (cells[cols.indexOf(c)] ?? "").trim()]));
-    const email = raw.email.toLowerCase();
-    const subs = raw.subcommittees ? raw.subcommittees.split(";").map((s) => s.trim()).filter(Boolean) : [];
-    const base = { line, email: raw.email || "(blank)", name: raw.display_name, subs };
-
-    const parsed = attendeeCsvRow.safeParse(raw);
-    if (!parsed.success) {
-      const field = parsed.error.issues[0]?.path[0];
-      const issue =
-        field === "email" ? "Missing or invalid email — row skipped"
-        : field === "linkedin" ? "LinkedIn must be a linkedin.com address"
-        : field === "display_name" ? "Missing display name — row skipped"
-        : "Invalid row — skipped";
-      return { ...base, kind: "error", issue };
-    }
-    if (seen.has(email)) return { ...base, kind: "error", issue: `Duplicate of row ${seen.get(email)} — skipped` };
-    seen.set(email, line);
-    if (existing.includes(email)) return { ...base, kind: "existing", issue: "Already invited — existing details kept" };
-    const unknown = subs.find((s) => !knownLower.includes(s.toLowerCase()));
-    if (unknown) return { ...base, kind: "unknown-sub", issue: `Subcommittee “${unknown}” not found` };
-    return { ...base, kind: "new" };
-  });
-}
-
-const template = `${CSV_COLUMNS.join(",")}\njane.doe@university.edu,Jane Doe,Associate Dean,State University,linkedin.com/in/janedoe,Finance;Programs\n`;
+const template = `${CSV_COLUMNS.join(",")}\n`;
 
 export function AttendeeImport({ eventId, existingEmails, subcommitteeNames }: { eventId: string; existingEmails: string[]; subcommitteeNames: string[] }) {
   const router = useRouter();
   const [fileName, setFileName] = React.useState<string | null>(null);
-  const [rows, setRows] = React.useState<PreviewRow[]>([]);
+  const [csvText, setCsvText] = React.useState("");
+  const [fileError, setFileError] = React.useState<string | null>(null);
+  const { run, pending, error } = useAction();
+  const [rows, setRows] = React.useState<ImportRow[]>([]);
   const [mapping, setMapping] = React.useState<Record<string, string>>({});
   const [dragging, setDragging] = React.useState(false);
   const inputRef = React.useRef<HTMLInputElement>(null);
 
   async function load(file: File) {
-    setFileName(file.name);
-    setRows(buildPreview(await file.text(), existingEmails, subcommitteeNames));
+    const text = await file.text();
+    const preview = buildImportPreview(text, existingEmails, subcommitteeNames);
     setMapping({});
+    if (!preview) {
+      setFileName(null);
+      setRows([]);
+      setFileError(`“${file.name}” needs an email and a display_name column. Download the template to see the layout.`);
+      return;
+    }
+    setFileError(null);
+    setFileName(file.name);
+    setCsvText(text);
+    setRows(preview);
   }
 
-  const unknownSubs = [...new Set(rows.flatMap((r) => r.subs).filter((s) => !subcommitteeNames.some((k) => k.toLowerCase() === s.toLowerCase())))];
+  const unknownSubs = unknownSubcommittees(rows, subcommitteeNames);
   const counts = {
     new: rows.filter((r) => r.kind === "new" || r.kind === "unknown-sub").length,
     existing: rows.filter((r) => r.kind === "existing").length,
@@ -93,6 +74,7 @@ export function AttendeeImport({ eventId, existingEmails, subcommitteeNames }: {
             <Button variant="outline" size="sm" onClick={() => inputRef.current?.click()}>{fileName ? "Choose another file" : "Choose file"}</Button>
             <input ref={inputRef} type="file" accept=".csv,text/csv" className="sr-only" onChange={(e) => e.target.files?.[0] && load(e.target.files[0])} />
           </div>
+          <FormError message={fileError} className="mt-2 text-xs font-medium text-destructive" />
           <p className="mt-2 text-xs text-muted-foreground">
             Columns: email*, display_name*, title, organization, linkedin, subcommittees (separated by ;).{" "}
             <a download="attendee-template.csv" href={`data:text/csv;charset=utf-8,${encodeURIComponent(template)}`} className="text-primary underline">Download template</a>
@@ -150,17 +132,19 @@ export function AttendeeImport({ eventId, existingEmails, subcommitteeNames }: {
               </div>
             ))}
 
+            {rows.length === 0 && <p className="text-sm text-muted-foreground">This file has a header row but no attendees.</p>}
+            <FormError message={error} />
             <div className="flex gap-3">
               <Button
-                disabled={!counts.new || unresolved}
-                onClick={() => {
-                  // TODO: server action — re-validate with attendeeCsvRow, insert invitations, never overwrite existing enrollments.
-                  router.push(`/admin/events/${eventId}/attendees`);
+                disabled={!counts.new || unresolved || pending}
+                onClick={async () => {
+                  const res = await run(() => importAttendees(eventId, csvText, mapping));
+                  if (res.ok) router.push(`/admin/events/${eventId}/attendees`);
                 }}
               >
-                Import {counts.new} attendee{counts.new === 1 ? "" : "s"}
+                {pending ? "Importing…" : `Import ${counts.new} attendee${counts.new === 1 ? "" : "s"}`}
               </Button>
-              <Button variant="outline" onClick={() => { setFileName(null); setRows([]); }}>Cancel</Button>
+              <Button variant="outline" onClick={() => { setFileName(null); setRows([]); setCsvText(""); }}>Cancel</Button>
             </div>
           </CardContent>
         </Card>

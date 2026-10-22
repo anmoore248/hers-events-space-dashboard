@@ -2,7 +2,8 @@ import { notFound } from "next/navigation";
 import { Breadcrumb } from "@/components/breadcrumb";
 import { TabNav } from "@/components/layout/tab-nav";
 import { getEventAccess } from "@/lib/access";
-import { getEvent } from "@/lib/mock-data";
+import { getEvent } from "@/lib/data";
+import { formatDateRange, tzLabel } from "@/lib/format";
 
 const tabs = [
   { href: "", label: "Home" },
@@ -20,24 +21,17 @@ export default async function EventLayout({
   params: Promise<{ eventId: string }>;
 }) {
   const { eventId } = await params;
-  const event = getEvent(eventId);
-  if (!event || (await getEventAccess(eventId)) === "none") notFound();
-
-  const city = event.location.split(",").slice(-2).join(",").trim();
+  const [event, access] = await Promise.all([getEvent(eventId), getEventAccess(eventId)]);
+  if (!event || access === "none") notFound();
 
   return (
     <>
-      <div className="bg-background border-b px-4 pt-5 sm:px-6 print:hidden">
+      <div className="border-b bg-background px-4 pt-5 sm:px-6 print:hidden">
         <div className="mx-auto max-w-5xl">
-          <Breadcrumb
-            items={[
-              { label: "My events", href: "/dashboard" },
-              { label: event.name },
-            ]}
-          />
-          <h1 className="text-primary text-2xl font-bold">{event.name}</h1>
-          <p className="text-muted-foreground mt-1 mb-3 text-xs">
-            {event.dateLabel} · {city} · Times shown in {event.tzLabel}
+          <Breadcrumb items={[{ label: "My events", href: "/dashboard" }, { label: event.name }]} />
+          <h1 className="text-2xl font-bold text-primary">{event.name}</h1>
+          <p className="mb-3 mt-1 text-xs text-muted-foreground">
+            {[formatDateRange(event.startDate, event.endDate), event.location, `Times shown in ${tzLabel(event.timeZone)}`].filter(Boolean).join(" · ")}
           </p>
           <TabNav base={`/events/${event.id}`} tabs={tabs} />
         </div>

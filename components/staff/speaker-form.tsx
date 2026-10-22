@@ -8,29 +8,32 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
+import { FormError } from "@/components/form-error";
 import { FormField } from "@/components/form-field";
+import { useAction } from "@/hooks/use-action";
+import { saveSpeaker } from "@/lib/actions/speakers";
 import { speakerSchema } from "@/lib/schemas";
 
 type In = z.input<typeof speakerSchema>;
 type Out = z.output<typeof speakerSchema>;
 
-export function SpeakerForm({ eventId, defaultValues, sessionTitles }: { eventId: string; defaultValues: In; sessionTitles: string[] }) {
+export function SpeakerForm({
+  eventId, speakerId, defaultValues, sessionTitles,
+}: { eventId: string; speakerId?: string; defaultValues: In; sessionTitles: string[] }) {
   const router = useRouter();
   const back = `/admin/events/${eventId}/speakers`;
+  const { run, pending, error } = useAction();
   const { register, handleSubmit, formState: { errors } } = useForm<In, unknown, Out>({ resolver: zodResolver(speakerSchema), defaultValues });
+
+  const onSubmit = handleSubmit(async (v) => {
+    const res = await run(() => saveSpeaker(eventId, speakerId ?? null, v));
+    if (res.ok) router.push(back);
+  });
 
   return (
     <Card className="max-w-3xl">
       <CardContent className="pt-5">
-        <form
-          noValidate
-          className="grid gap-4"
-          onSubmit={handleSubmit((v) => {
-            // TODO: server action — upsert speakers.
-            console.info(v);
-            router.push(back);
-          })}
-        >
+        <form noValidate className="grid gap-4" onSubmit={onSubmit}>
           <FormField label="Name" required htmlFor="name" error={errors.name?.message}>
             <Input id="name" {...register("name")} />
           </FormField>
@@ -57,8 +60,9 @@ export function SpeakerForm({ eventId, defaultValues, sessionTitles }: { eventId
               <span className="text-muted-foreground">(assign speakers from the session form)</span>
             </p>
           )}
+          <FormError message={error} />
           <div className="flex gap-3 pt-1">
-            <Button type="submit">Save speaker</Button>
+            <Button type="submit" disabled={pending}>{pending ? "Saving…" : "Save speaker"}</Button>
             <Button type="button" variant="outline" onClick={() => router.push(back)}>Cancel</Button>
           </div>
         </form>

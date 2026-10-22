@@ -1,9 +1,9 @@
 import { redirect } from "next/navigation";
+import { getCurrentUser } from "@/lib/data";
 
-/**
- * "/" — real version: read the Better Auth session and send
- * attendees to /dashboard, staff to /admin, everyone else to /login.
- */
-export default function Home() {
-  redirect("/login");
+/** "/" sends staff to /admin, attendees to /dashboard, everyone else to /login. */
+export default async function Home() {
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+  redirect(user.role === "staff" ? "/admin" : "/dashboard");
 }

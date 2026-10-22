@@ -3,16 +3,17 @@
 import { Button } from "@/components/ui/button";
 import { SearchableList } from "./searchable-list";
 
-type Row = { id: string; displayName: string; title?: string; organization?: string; linkedin?: string };
+import type { DirectoryPerson } from "@/lib/types";
 
 /** Name, title, organization, LinkedIn. Emails are never shown (doc §10). */
-export function DirectoryList({ people }: { people: Row[] }) {
+export function DirectoryList({ people }: { people: DirectoryPerson[] }) {
   return (
     <SearchableList
       title="Participants"
       items={people}
       getKey={(p) => p.id}
       placeholder="Search name, title, organization"
+      noItemsText="There are no participants listed at this time."
       searchText={(p) => `${p.displayName} ${p.title ?? ""} ${p.organization ?? ""}`}
       renderItem={(p) => (
         <div className="flex items-center justify-between gap-3 px-4 py-3">

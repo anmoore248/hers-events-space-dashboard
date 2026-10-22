@@ -1,4 +1,4 @@
-import type { AgendaSession } from "./mock-data";
+import type { AgendaSession } from "./types";
 
 export type TimeSlot = { start: string; end: string; sessions: AgendaSession[] };
 

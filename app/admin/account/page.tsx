@@ -1,19 +1,16 @@
 import type { Metadata } from "next";
 import { AccountPanel } from "@/components/account-panel";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
-import { redirect } from "next/navigation";
+import { getCurrentUser, getSettings, requireStaffPage } from "@/lib/data";
 
 export const metadata: Metadata = { title: "Account" };
 
 export default async function StaffAccountPage() {
-  const session = await auth.api.getSession({ headers: await headers() })
-  if (!session) redirect("/login");
-
+  await requireStaffPage();
+  const [user, { helpEmail }] = await Promise.all([getCurrentUser(), getSettings()]);
   return (
     <div className="max-w-md">
-      <h1 className="text-primary mb-5 text-2xl font-bold">Account</h1>
-      <AccountPanel user_name={session.user.name} email={session.user.email} />
+      <h1 className="mb-5 text-2xl font-bold text-primary">Account</h1>
+      <AccountPanel email={user?.email} helpEmail={helpEmail} />
     </div>
   );
 }

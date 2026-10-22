@@ -8,7 +8,8 @@ import { Button } from "@/components/ui/button";
 import { NativeSelect } from "@/components/ui/native-select";
 import { groupByTimeSlot } from "@/lib/agenda";
 import { formatDayLong, formatDayShort, formatTimeRange } from "@/lib/format";
-import type { AgendaSession, Speaker, Track } from "@/lib/mock-data";
+import type { AgendaSession, Speaker, Track } from "@/lib/types";
+import { EmptyState } from "@/components/empty-state";
 import { cn } from "@/lib/utils";
 
 export function AgendaView({
@@ -28,7 +29,7 @@ export function AgendaView({
   tzLabel: string;
   tzLong: string;
 }) {
-  const [day, setDay] = React.useState(days[0]);
+  const [day, setDay] = React.useState(days[0] ?? "");
   const [track, setTrack] = React.useState("all");
 
   const visible = sessions.filter(
@@ -38,6 +39,14 @@ export function AgendaView({
   const trackName = (id?: string) => tracks.find((t) => t.id === id)?.name;
   const speakerNames = (ids: string[]) =>
     ids.map((id) => speakers.find((s) => s.id === id)?.name).filter(Boolean).join(", ");
+
+  if (sessions.length === 0) {
+    return (
+      <div className="mx-auto max-w-3xl">
+        <EmptyState title="There is no agenda at this time.">Check back soon. Sessions appear here as soon as HERS staff add them.</EmptyState>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -68,17 +77,17 @@ export function AgendaView({
           <h2 className="text-base font-bold text-primary">{formatDayLong(day)}</h2>
           <p className="mt-1 text-xs text-muted-foreground">All times {tzLong} ({tzLabel})</p>
         </div>
-        <div className="w-44">
+        {tracks.length > 0 && <div className="w-44">
           <label htmlFor="track-filter" className="sr-only">Filter by track</label>
           <NativeSelect id="track-filter" value={track} onChange={(e) => setTrack(e.target.value)}>
             <option value="all">All tracks</option>
             {tracks.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
           </NativeSelect>
-        </div>
+        </div>}
       </div>
 
       {slots.length === 0 ? (
-        <p className="rounded-lg border bg-card p-6 text-sm text-muted-foreground">Nothing scheduled for this day yet.</p>
+        <EmptyState title="Nothing is scheduled for this day." />
       ) : (
         <ol className="overflow-hidden rounded-lg border bg-card">
           {slots.map((slot) => (
@@ -97,12 +106,11 @@ export function AgendaView({
                           {s.title}
                         </Link>
                         <p className="text-xs text-muted-foreground">
-                          {s.location}
-                          {!s.trackId && names && ` · ${names}`}
+                          {[s.location, names].filter(Boolean).join(" · ")}
                         </p>
                       </div>
                       <div className="flex flex-wrap justify-end gap-1.5">
-                        {s.virtualLink && <Badge variant="muted">In person + virtual</Badge>}
+                        {s.virtualLink && <Badge variant="muted">{s.location ? "In person + virtual" : "Virtual"}</Badge>}
                         {tName && <Badge>{tName}</Badge>}
                       </div>
                     </li>

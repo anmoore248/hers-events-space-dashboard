@@ -4,9 +4,12 @@ import * as React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ConfirmButton } from "@/components/confirm-button";
 import { CopyButton } from "@/components/copy-button";
+import { regenerateAccessKey } from "@/lib/actions/events";
 
-export function AccessKeyCard({ initialKey }: { initialKey: string }) {
+export function AccessKeyCard({ eventId, initialKey }: { eventId: string; initialKey: string }) {
   const [key, setKey] = React.useState(initialKey);
+  React.useEffect(() => setKey(initialKey), [initialKey]);
+
   return (
     <Card className="border-2 border-destructive">
       <CardHeader>
@@ -28,10 +31,10 @@ export function AccessKeyCard({ initialKey }: { initialKey: string }) {
             destructive
             variant="destructive"
             description={<p>The old key stops working immediately. Attendees who haven&rsquo;t signed up yet will need the new key.</p>}
-            onConfirm={() => {
-              // TODO: server action — generate and save a new key.
-              const part = Math.random().toString(36).slice(2, 6).toUpperCase();
-              setKey(`${key.split("-")[0]}-${part}`);
+            onConfirm={async () => {
+              const res = await regenerateAccessKey(eventId);
+              if (res.ok) setKey(res.data.accessKey);
+              return res;
             }}
           />
         </div>

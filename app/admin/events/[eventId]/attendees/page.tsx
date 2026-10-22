@@ -1,7 +1,9 @@
 import { AttendeesManager } from "@/components/staff/attendees-manager";
-import { byEvent, enrollments, subcommittees } from "@/lib/mock-data";
+import { getEnrollments, getSubcommittees, requireStaffPage } from "@/lib/data";
 
 export default async function AttendeesPage({ params }: { params: Promise<{ eventId: string }> }) {
+  await requireStaffPage();
   const { eventId } = await params;
-  return <AttendeesManager eventId={eventId} initial={byEvent(enrollments, eventId)} subcommittees={byEvent(subcommittees, eventId)} total={68} />;
+  const [enrollments, subcommittees] = await Promise.all([getEnrollments(eventId), getSubcommittees(eventId)]);
+  return <AttendeesManager eventId={eventId} enrollments={enrollments} subcommittees={subcommittees} />;
 }

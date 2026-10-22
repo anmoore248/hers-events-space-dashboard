@@ -1,267 +1,376 @@
-import {
-  boolean,
-  date,
-  index,
-  integer,
-  pgEnum,
-  primaryKey,
-  snakeCase,
-  text,
-  timestamp,
-  unique,
-  uuid,
-} from "drizzle-orm/pg-core";
-import { user } from "./auth-schema";
+import { pgSchema, pgTable, pgEnum, uuid, text, timestamp, integer, date, boolean, jsonb, index, foreignKey, primaryKey, unique } from "drizzle-orm/pg-core"
+import { sql } from "drizzle-orm"
 
-// Better Auth's tables (user, session, account, verification) live in auth-schema.ts.
-// Re-exported so Drizzle sees one schema.
-export * from "./auth-schema";
+export const neonAuth = pgSchema("neon_auth");
+export const enrollmentStatus = pgEnum("enrollment_status", ["invited", "active", "revoked"])
 
-// In Drizzle 1.0, snake_case column names come from the table builder:
-// a column written as startDate becomes start_date in the database.
-const pgTable = snakeCase.table;
 
-/* Shared column helpers. */
-const id = () => uuid().primaryKey().defaultRandom();
-
-const createdAt = () =>
-  timestamp({ withTimezone: true }).defaultNow().notNull();
-
-const eventRef = () =>
-  uuid()
-    .notNull()
-    .references(() => events.id, { onDelete: "cascade" });
-
-export const enrollmentStatus = pgEnum("enrollment_status", [
-  "invited",
-  "active",
-  "revoked",
+export const accountInNeonAuth = neonAuth.table("account", {
+	id: uuid().defaultRandom().primaryKey(),
+	accountId: text().notNull(),
+	providerId: text().notNull(),
+	userId: uuid().notNull(),
+	accessToken: text(),
+	refreshToken: text(),
+	idToken: text(),
+	accessTokenExpiresAt: timestamp({ withTimezone: true }),
+	refreshTokenExpiresAt: timestamp({ withTimezone: true }),
+	scope: text(),
+	password: text(),
+	createdAt: timestamp({ withTimezone: true }).default(sql`CURRENT_TIMESTAMP`).notNull(),
+	updatedAt: timestamp({ withTimezone: true }).notNull(),
+}, (table) => [
+	foreignKey({
+		columns: [table.userId],
+		foreignColumns: [userInNeonAuth.id],
+		name: "account_userId_fkey"
+	}).onDelete("cascade"),
+	index("account_userId_idx").using("btree", table.userId.asc().nullsLast()),
 ]);
 
-/* ---------- Organization ---------- */
+export const invitationInNeonAuth = neonAuth.table("invitation", {
+	id: uuid().defaultRandom().primaryKey(),
+	organizationId: uuid().notNull(),
+	email: text().notNull(),
+	role: text(),
+	status: text().notNull(),
+	expiresAt: timestamp({ withTimezone: true }).notNull(),
+	createdAt: timestamp({ withTimezone: true }).default(sql`CURRENT_TIMESTAMP`).notNull(),
+	inviterId: uuid().notNull(),
+}, (table) => [
+	foreignKey({
+		columns: [table.inviterId],
+		foreignColumns: [userInNeonAuth.id],
+		name: "invitation_inviterId_fkey"
+	}).onDelete("cascade"),
+	foreignKey({
+		columns: [table.organizationId],
+		foreignColumns: [organizationInNeonAuth.id],
+		name: "invitation_organizationId_fkey"
+	}).onDelete("cascade"),
+	index("invitation_email_idx").using("btree", table.email.asc().nullsLast()),
+	index("invitation_organizationId_idx").using("btree", table.organizationId.asc().nullsLast()),
+]);
 
-/* Organization-wide values */
-export const settings = pgTable("settings", {
-  key: text().primaryKey(), // e.g. "messageStaffGroupMe", "helpEmail"
-  value: text().notNull(),
-  updatedBy: text().references(() => user.id),
-  updatedAt: createdAt(),
+export const jwksInNeonAuth = neonAuth.table("jwks", {
+	id: uuid().defaultRandom().primaryKey(),
+	publicKey: text().notNull(),
+	privateKey: text().notNull(),
+	createdAt: timestamp({ withTimezone: true }).notNull(),
+	expiresAt: timestamp({ withTimezone: true }),
+	alg: text(),
+	crv: text(),
 });
 
-/* One-time staff signup links */
-export const staffInvites = pgTable("staff_invites", {
-  id: id(),
-  email: text().notNull(),
-  token: text().notNull().unique(),
-  invitedBy: text()
-    .notNull()
-    .references(() => user.id),
-  usedAt: timestamp({ withTimezone: true }),
-  cancelledAt: timestamp({ withTimezone: true }),
-  createdAt: createdAt(),
-});
+export const memberInNeonAuth = neonAuth.table("member", {
+	id: uuid().defaultRandom().primaryKey(),
+	organizationId: uuid().notNull(),
+	userId: uuid().notNull(),
+	role: text().notNull(),
+	createdAt: timestamp({ withTimezone: true }).notNull(),
+}, (table) => [
+	foreignKey({
+		columns: [table.organizationId],
+		foreignColumns: [organizationInNeonAuth.id],
+		name: "member_organizationId_fkey"
+	}).onDelete("cascade"),
+	foreignKey({
+		columns: [table.userId],
+		foreignColumns: [userInNeonAuth.id],
+		name: "member_userId_fkey"
+	}).onDelete("cascade"),
+	index("member_organizationId_idx").using("btree", table.organizationId.asc().nullsLast()),
+	index("member_userId_idx").using("btree", table.userId.asc().nullsLast()),
+]);
 
-/* Who, what, when, and related event */
-export const activityLog = pgTable(
-  "activity_log",
-  {
-    id: id(),
-    actorId: text().references(() => user.id),
-    action: text().notNull(), // e.g. "password_reset", "email_changed"
-    details: text().notNull(),
-    eventId: uuid().references(() => events.id, { onDelete: "set null" }),
-    createdAt: createdAt(),
-  },
-  (t) => [index().on(t.createdAt)],
-);
+export const organizationInNeonAuth = neonAuth.table("organization", {
+	id: uuid().defaultRandom().primaryKey(),
+	name: text().notNull(),
+	slug: text().notNull(),
+	logo: text(),
+	createdAt: timestamp({ withTimezone: true }).notNull(),
+	metadata: text(),
+}, (table) => [
+	unique("organization_slug_key").on(table.slug),]);
 
-/* ---------- Events ---------- */
+export const projectConfigInNeonAuth = neonAuth.table("project_config", {
+	id: uuid().defaultRandom().primaryKey(),
+	name: text().notNull(),
+	endpointId: text("endpoint_id").notNull(),
+	createdAt: timestamp("created_at", { withTimezone: true }).default(sql`CURRENT_TIMESTAMP`).notNull(),
+	updatedAt: timestamp("updated_at", { withTimezone: true }).default(sql`CURRENT_TIMESTAMP`).notNull(),
+	trustedOrigins: jsonb("trusted_origins").notNull(),
+	socialProviders: jsonb("social_providers").notNull(),
+	emailProvider: jsonb("email_provider"),
+	emailAndPassword: jsonb("email_and_password"),
+	allowLocalhost: boolean("allow_localhost").notNull(),
+	pluginConfigs: jsonb("plugin_configs"),
+	webhookConfig: jsonb("webhook_config"),
+}, (table) => [
+	unique("project_config_endpoint_id_key").on(table.endpointId),]);
 
-/* Details, time zone, dates, access expiry, access key, created by */
-export const events = pgTable("events", {
-  id: id(),
-  name: text().notNull(),
-  description: text().notNull().default(""),
-  startDate: date().notNull(),
-  endDate: date().notNull(),
-  timeZone: text().notNull(), // IANA name, e.g. "America/New_York"
-  location: text(),
-  virtualDetails: text(),
-  accessExpiry: date().notNull(),
-  accessKey: text().notNull().unique(),
-  createdBy: text()
-    .notNull()
-    .references(() => user.id),
-  createdAt: createdAt(),
-});
+export const sessionInNeonAuth = neonAuth.table("session", {
+	id: uuid().defaultRandom().primaryKey(),
+	expiresAt: timestamp({ withTimezone: true }).notNull(),
+	token: text().notNull(),
+	createdAt: timestamp({ withTimezone: true }).default(sql`CURRENT_TIMESTAMP`).notNull(),
+	updatedAt: timestamp({ withTimezone: true }).notNull(),
+	ipAddress: text(),
+	userAgent: text(),
+	userId: uuid().notNull(),
+	impersonatedBy: text(),
+	activeOrganizationId: text(),
+}, (table) => [
+	foreignKey({
+		columns: [table.userId],
+		foreignColumns: [userInNeonAuth.id],
+		name: "session_userId_fkey"
+	}).onDelete("cascade"),
+	index("session_userId_idx").using("btree", table.userId.asc().nullsLast()),
+	unique("session_token_key").on(table.token),]);
 
-/* Lable, URL, order, optional visibility dates */
-export const eventLinks = pgTable("event_links", {
-  id: id(),
-  eventId: eventRef(),
-  label: text().notNull(),
-  url: text().notNull(),
-  sortOrder: integer().notNull().default(0),
-  visibleFrom: timestamp({ withTimezone: true }),
-  visibleUntil: timestamp({ withTimezone: true }),
-});
+export const userInNeonAuth = neonAuth.table("user", {
+	id: uuid().defaultRandom().primaryKey(),
+	name: text().notNull(),
+	email: text().notNull(),
+	emailVerified: boolean().notNull(),
+	image: text(),
+	createdAt: timestamp({ withTimezone: true }).default(sql`CURRENT_TIMESTAMP`).notNull(),
+	updatedAt: timestamp({ withTimezone: true }).default(sql`CURRENT_TIMESTAMP`).notNull(),
+	role: text(),
+	banned: boolean(),
+	banReason: text(),
+	banExpires: timestamp({ withTimezone: true }),
+}, (table) => [
+	unique("user_email_key").on(table.email),]);
 
-/* ---------- Attendees ---------- */
+export const verificationInNeonAuth = neonAuth.table("verification", {
+	id: uuid().defaultRandom().primaryKey(),
+	identifier: text().notNull(),
+	value: text().notNull(),
+	expiresAt: timestamp({ withTimezone: true }).notNull(),
+	createdAt: timestamp({ withTimezone: true }).default(sql`CURRENT_TIMESTAMP`).notNull(),
+	updatedAt: timestamp({ withTimezone: true }).default(sql`CURRENT_TIMESTAMP`).notNull(),
+}, (table) => [
+	index("verification_identifier_idx").using("btree", table.identifier.asc().nullsLast()),
+]);
 
-/* User and event, invited email, status (invited, active, revoked), individual expiry, display name, title, organisation, LinkedIn URL */
-export const enrollments = pgTable(
-  "enrollments",
-  {
-    id: id(),
-    eventId: eventRef(),
-    userId: text().references(() => user.id), // empty until the invitee signs up
-    invitedEmail: text().notNull(), // always stored in lowercase
-    status: enrollmentStatus().notNull().default("invited"),
-    individualExpiry: date(),
-    // The profile is stored per enrollment, not per account (doc §10).
-    displayName: text().notNull(),
-    title: text(),
-    organization: text(),
-    linkedin: text(),
-    createdAt: createdAt(),
-  },
-  (t) => [unique().on(t.eventId, t.invitedEmail), index().on(t.userId)],
-);
+export const account = pgTable("account", {
+	id: text().primaryKey(),
+	accountId: text("account_id").notNull(),
+	providerId: text("provider_id").notNull(),
+	userId: text("user_id").notNull().references(() => user.id, { onDelete: "cascade" } ),
+	accessToken: text("access_token"),
+	refreshToken: text("refresh_token"),
+	idToken: text("id_token"),
+	accessTokenExpiresAt: timestamp("access_token_expires_at"),
+	refreshTokenExpiresAt: timestamp("refresh_token_expires_at"),
+	scope: text(),
+	password: text(),
+	createdAt: timestamp("created_at").default(sql`now()`).notNull(),
+	updatedAt: timestamp("updated_at").notNull(),
+}, (table) => [
+	index("account_userId_idx").using("btree", table.userId.asc().nullsLast()),
+]);
 
-/* Name and private GrouMe link */
-export const subcommittees = pgTable("subcommittees", {
-  id: id(),
-  eventId: eventRef(),
-  name: text().notNull(),
-  groupMeUrl: text().notNull(),
-});
+export const activityLog = pgTable("activity_log", {
+	id: uuid().defaultRandom().primaryKey(),
+	actorId: text("actor_id").references(() => user.id),
+	action: text().notNull(),
+	details: text().notNull(),
+	eventId: uuid("event_id").references(() => events.id, { onDelete: "set null" } ),
+	createdAt: timestamp("created_at", { withTimezone: true }).default(sql`now()`).notNull(),
+}, (table) => [
+	index("activity_log_created_at_index").using("btree", table.createdAt.asc().nullsLast()),
+]);
 
-/* Staff-assigned membership */
-export const subcommitteeMembers = pgTable(
-  "subcommittee_members",
-  {
-    subcommitteeId: uuid()
-      .notNull()
-      .references(() => subcommittees.id, { onDelete: "cascade" }),
-    enrollmentId: uuid()
-      .notNull()
-      .references(() => enrollments.id, { onDelete: "cascade" }),
-  },
-  (t) => [primaryKey({ columns: [t.subcommitteeId, t.enrollmentId] })],
-);
+export const announcementReads = pgTable("announcement_reads", {
+	announcementId: uuid("announcement_id").notNull().references(() => announcements.id, { onDelete: "cascade" } ),
+	userId: text("user_id").notNull().references(() => user.id, { onDelete: "cascade" } ),
+	readAt: timestamp("read_at", { withTimezone: true }).default(sql`now()`).notNull(),
+}, (table) => [
+	primaryKey({ columns: [table.announcementId, table.userId], name: "announcement_reads_pkey"}),
+]);
 
-/* ---------- Agenda ---------- */
-
-/* Parallel session tracks per event, with order */
-export const tracks = pgTable("tracks", {
-  id: id(),
-  eventId: eventRef(),
-  name: text().notNull(),
-  sortOrder: integer().notNull().default(0),
-});
-
-// Named sessions_agenda so it never clashes with Better Auth's login "session" table.
-export const agendaSessions = pgTable(
-  "sessions_agenda",
-  {
-    id: id(),
-    eventId: eventRef(),
-    trackId: uuid().references(() => tracks.id, { onDelete: "set null" }), // empty = everyone
-    title: text().notNull(),
-    startsAt: timestamp({ withTimezone: true }).notNull(), // stored in UTC (doc §8.1)
-    endsAt: timestamp({ withTimezone: true }).notNull(),
-    location: text(),
-    virtualLink: text(),
-    description: text().notNull().default(""),
-  },
-  (t) => [index().on(t.eventId, t.startsAt)],
-);
-
-/* Name, title, organisation, bio, optional contact links */
-export const speakers = pgTable("speakers", {
-  id: id(),
-  eventId: eventRef(),
-  name: text().notNull(),
-  title: text(),
-  organization: text(),
-  bio: text().notNull().default(""),
-  email: text(),
-  linkedin: text(),
-  website: text(),
-});
-
-/* Which speakers are in which sessions, in order */
-export const sessionSpeakers = pgTable(
-  "session_speakers",
-  {
-    sessionId: uuid()
-      .notNull()
-      .references(() => agendaSessions.id, { onDelete: "cascade" }),
-    speakerId: uuid()
-      .notNull()
-      .references(() => speakers.id, { onDelete: "cascade" }),
-    sortOrder: integer().notNull().default(0),
-  },
-  (t) => [primaryKey({ columns: [t.sessionId, t.speakerId] })],
-);
-
-/* ---------- Announcements ---------- */
-
-/* Text, pinned flag, sent by, timestamp */
 export const announcements = pgTable("announcements", {
-  id: id(),
-  eventId: eventRef(),
-  title: text().notNull(),
-  body: text().notNull(),
-  pinned: boolean().notNull().default(false),
-  sentBy: text()
-    .notNull()
-    .references(() => user.id),
-  createdAt: createdAt(),
-  updatedAt: createdAt(),
+	id: uuid().defaultRandom().primaryKey(),
+	eventId: uuid("event_id").notNull().references(() => events.id, { onDelete: "cascade" } ),
+	title: text().notNull(),
+	body: text().notNull(),
+	pinned: boolean().default(false).notNull(),
+	sentBy: text("sent_by").notNull().references(() => user.id),
+	createdAt: timestamp("created_at", { withTimezone: true }).default(sql`now()`).notNull(),
+	updatedAt: timestamp("updated_at", { withTimezone: true }).default(sql`now()`).notNull(),
 });
 
-/* What each user as seen, for unread badges */
-export const announcementReads = pgTable(
-  "announcement_reads",
-  {
-    announcementId: uuid()
-      .notNull()
-      .references(() => announcements.id, { onDelete: "cascade" }),
-    userId: text()
-      .notNull()
-      .references(() => user.id, { onDelete: "cascade" }),
-    readAt: createdAt(),
-  },
-  (t) => [primaryKey({ columns: [t.announcementId, t.userId] })],
-);
-
-/* ---------- Check-in ---------- */
-
-/* Event, label ("Arrival" by default), optional date */
 export const checkInPoints = pgTable("check_in_points", {
-  id: id(),
-  eventId: eventRef(),
-  label: text().notNull().default("Arrival"),
-  date: date(),
+	id: uuid().defaultRandom().primaryKey(),
+	eventId: uuid("event_id").notNull().references(() => events.id, { onDelete: "cascade" } ),
+	label: text().default("Arrival").notNull(),
+	date: date(),
 });
 
-/* Check-in point, enrolment time, checked-in by */
-export const checkIns = pgTable(
-  "check_ins",
-  {
-    id: id(),
-    pointId: uuid()
-      .notNull()
-      .references(() => checkInPoints.id, { onDelete: "cascade" }),
-    enrollmentId: uuid()
-      .notNull()
-      .references(() => enrollments.id, { onDelete: "cascade" }),
-    checkedInAt: createdAt(),
-    checkedInBy: text()
-      .notNull()
-      .references(() => user.id),
-  },
-  // One check-in per person per point: a second tap does nothing (doc §14.1).
-  (t) => [unique().on(t.pointId, t.enrollmentId)],
-);
+export const checkIns = pgTable("check_ins", {
+	id: uuid().defaultRandom().primaryKey(),
+	pointId: uuid("point_id").notNull().references(() => checkInPoints.id, { onDelete: "cascade" } ),
+	enrollmentId: uuid("enrollment_id").notNull().references(() => enrollments.id, { onDelete: "cascade" } ),
+	checkedInAt: timestamp("checked_in_at", { withTimezone: true }).default(sql`now()`).notNull(),
+	checkedInBy: text("checked_in_by").notNull().references(() => user.id),
+}, (table) => [
+	unique("check_ins_point_id_enrollment_id_unique").on(table.pointId, table.enrollmentId),]);
+
+export const enrollments = pgTable("enrollments", {
+	id: uuid().defaultRandom().primaryKey(),
+	eventId: uuid("event_id").notNull().references(() => events.id, { onDelete: "cascade" } ),
+	userId: text("user_id").references(() => user.id),
+	invitedEmail: text("invited_email").notNull(),
+	status: enrollmentStatus().default("invited").notNull(),
+	individualExpiry: date("individual_expiry"),
+	displayName: text("display_name").notNull(),
+	title: text(),
+	organization: text(),
+	linkedin: text(),
+	createdAt: timestamp("created_at", { withTimezone: true }).default(sql`now()`).notNull(),
+}, (table) => [
+	index("enrollments_user_id_index").using("btree", table.userId.asc().nullsLast()),
+	unique("enrollments_event_id_invited_email_unique").on(table.eventId, table.invitedEmail),]);
+
+export const eventLinks = pgTable("event_links", {
+	id: uuid().defaultRandom().primaryKey(),
+	eventId: uuid("event_id").notNull().references(() => events.id, { onDelete: "cascade" } ),
+	label: text().notNull(),
+	url: text().notNull(),
+	sortOrder: integer("sort_order").default(0).notNull(),
+	visibleFrom: timestamp("visible_from", { withTimezone: true }),
+	visibleUntil: timestamp("visible_until", { withTimezone: true }),
+});
+
+export const events = pgTable("events", {
+	id: uuid().defaultRandom().primaryKey(),
+	name: text().notNull(),
+	description: text().default("").notNull(),
+	startDate: date("start_date").notNull(),
+	endDate: date("end_date").notNull(),
+	timeZone: text("time_zone").notNull(),
+	location: text(),
+	virtualDetails: text("virtual_details"),
+	accessExpiry: date("access_expiry").notNull(),
+	accessKey: text("access_key").notNull(),
+	createdBy: text("created_by").notNull().references(() => user.id),
+	createdAt: timestamp("created_at", { withTimezone: true }).default(sql`now()`).notNull(),
+}, (table) => [
+	unique("events_access_key_key").on(table.accessKey),]);
+
+export const session = pgTable("session", {
+	id: text().primaryKey(),
+	expiresAt: timestamp("expires_at").notNull(),
+	token: text().notNull(),
+	createdAt: timestamp("created_at").default(sql`now()`).notNull(),
+	updatedAt: timestamp("updated_at").notNull(),
+	ipAddress: text("ip_address"),
+	userAgent: text("user_agent"),
+	userId: text("user_id").notNull().references(() => user.id, { onDelete: "cascade" } ),
+	impersonatedBy: text("impersonated_by"),
+}, (table) => [
+	index("session_userId_idx").using("btree", table.userId.asc().nullsLast()),
+	unique("session_token_key").on(table.token),]);
+
+export const sessionSpeakers = pgTable("session_speakers", {
+	sessionId: uuid("session_id").notNull().references(() => sessionsAgenda.id, { onDelete: "cascade" } ),
+	speakerId: uuid("speaker_id").notNull().references(() => speakers.id, { onDelete: "cascade" } ),
+	sortOrder: integer("sort_order").default(0).notNull(),
+}, (table) => [
+	primaryKey({ columns: [table.sessionId, table.speakerId], name: "session_speakers_pkey"}),
+]);
+
+export const sessionsAgenda = pgTable("sessions_agenda", {
+	id: uuid().defaultRandom().primaryKey(),
+	eventId: uuid("event_id").notNull().references(() => events.id, { onDelete: "cascade" } ),
+	trackId: uuid("track_id").references(() => tracks.id, { onDelete: "set null" } ),
+	title: text().notNull(),
+	startsAt: timestamp("starts_at", { withTimezone: true }).notNull(),
+	endsAt: timestamp("ends_at", { withTimezone: true }).notNull(),
+	location: text(),
+	virtualLink: text("virtual_link"),
+	description: text().default("").notNull(),
+}, (table) => [
+	index("sessions_agenda_event_id_starts_at_index").using("btree", table.eventId.asc().nullsLast(), table.startsAt.asc().nullsLast()),
+]);
+
+export const settings = pgTable("settings", {
+	key: text().primaryKey(),
+	value: text().notNull(),
+	updatedBy: text("updated_by").references(() => user.id),
+	updatedAt: timestamp("updated_at", { withTimezone: true }).default(sql`now()`).notNull(),
+});
+
+export const speakers = pgTable("speakers", {
+	id: uuid().defaultRandom().primaryKey(),
+	eventId: uuid("event_id").notNull().references(() => events.id, { onDelete: "cascade" } ),
+	name: text().notNull(),
+	title: text(),
+	organization: text(),
+	bio: text().default("").notNull(),
+	email: text(),
+	linkedin: text(),
+	website: text(),
+});
+
+export const staffInvites = pgTable("staff_invites", {
+	id: uuid().defaultRandom().primaryKey(),
+	email: text().notNull(),
+	token: text().notNull(),
+	invitedBy: text("invited_by").notNull().references(() => user.id),
+	usedAt: timestamp("used_at", { withTimezone: true }),
+	cancelledAt: timestamp("cancelled_at", { withTimezone: true }),
+	createdAt: timestamp("created_at", { withTimezone: true }).default(sql`now()`).notNull(),
+}, (table) => [
+	unique("staff_invites_token_key").on(table.token),]);
+
+export const subcommitteeMembers = pgTable("subcommittee_members", {
+	subcommitteeId: uuid("subcommittee_id").notNull().references(() => subcommittees.id, { onDelete: "cascade" } ),
+	enrollmentId: uuid("enrollment_id").notNull().references(() => enrollments.id, { onDelete: "cascade" } ),
+}, (table) => [
+	primaryKey({ columns: [table.subcommitteeId, table.enrollmentId], name: "subcommittee_members_pkey"}),
+]);
+
+export const subcommittees = pgTable("subcommittees", {
+	id: uuid().defaultRandom().primaryKey(),
+	eventId: uuid("event_id").notNull().references(() => events.id, { onDelete: "cascade" } ),
+	name: text().notNull(),
+	groupMeUrl: text("group_me_url").notNull(),
+});
+
+export const tracks = pgTable("tracks", {
+	id: uuid().defaultRandom().primaryKey(),
+	eventId: uuid("event_id").notNull().references(() => events.id, { onDelete: "cascade" } ),
+	name: text().notNull(),
+	sortOrder: integer("sort_order").default(0).notNull(),
+});
+
+export const user = pgTable("user", {
+	id: text().primaryKey(),
+	name: text().notNull(),
+	email: text().notNull(),
+	emailVerified: boolean("email_verified").default(false).notNull(),
+	image: text(),
+	createdAt: timestamp("created_at").default(sql`now()`).notNull(),
+	updatedAt: timestamp("updated_at").default(sql`now()`).notNull(),
+	role: text(),
+	banned: boolean().default(false),
+	banReason: text("ban_reason"),
+	banExpires: timestamp("ban_expires"),
+	passwordCleared: boolean("password_cleared").default(false).notNull(),
+}, (table) => [
+	unique("user_email_key").on(table.email),]);
+
+export const verification = pgTable("verification", {
+	id: text().primaryKey(),
+	identifier: text().notNull(),
+	value: text().notNull(),
+	expiresAt: timestamp("expires_at").notNull(),
+	createdAt: timestamp("created_at").default(sql`now()`).notNull(),
+	updatedAt: timestamp("updated_at").default(sql`now()`).notNull(),
+}, (table) => [
+	index("verification_identifier_idx").using("btree", table.identifier.asc().nullsLast()),
+]);

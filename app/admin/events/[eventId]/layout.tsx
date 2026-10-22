@@ -2,7 +2,8 @@ import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Breadcrumb } from "@/components/breadcrumb";
 import { TabNav } from "@/components/layout/tab-nav";
-import { getEvent } from "@/lib/mock-data";
+import { getEvent, getEventStats } from "@/lib/data";
+import { plural } from "@/lib/format";
 
 const tabs = [
   { href: "", label: "Details" },
@@ -18,7 +19,7 @@ const tabs = [
 
 export default async function AdminEventLayout({ children, params }: { children: React.ReactNode; params: Promise<{ eventId: string }> }) {
   const { eventId } = await params;
-  const event = getEvent(eventId);
+  const [event, stats] = await Promise.all([getEvent(eventId), getEventStats(eventId)]);
   if (!event) notFound();
 
   return (
@@ -28,7 +29,7 @@ export default async function AdminEventLayout({ children, params }: { children:
         <h1 className="text-2xl font-bold text-primary">{event.name}</h1>
         <div className="flex gap-2">
           <Badge variant={event.status === "Expired" ? "muted" : "default"}>{event.status}</Badge>
-          <Badge>{event.attendeeCount} attendees</Badge>
+          <Badge>{plural(stats.invited + stats.signedUp, "attendee")}</Badge>
         </div>
       </div>
       <div className="mb-6 mt-3 border-b">
