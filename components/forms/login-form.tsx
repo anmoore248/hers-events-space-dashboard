@@ -18,11 +18,10 @@ export function LoginForm() {
 
   const onSubmit = handleSubmit(async (values) => {
     const res = await run(() => signIn(values));
-    router.push("/dashboard")
-    // if (res.ok) {
-    //   router.replace(res.data.redirectTo);
-    //   router.refresh();
-    // }
+    if (res.ok) {
+      router.replace(res.data.redirectTo);
+      router.refresh();
+    }
   });
 
   return (

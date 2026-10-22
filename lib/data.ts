@@ -1,8 +1,32 @@
 import "server-only";
 import type {
-  ActivityFilters, ActivityItem, ActivityPage, Agenda, Announcement, CheckInPoint, CheckInSheet, CurrentUser,
-  DirectoryPerson, Enrollment, GroupMeCleanup, EventHome, EventLink, EventStats, EventSummary, HersEvent, MyEvent, MyProfile,
-  PersonAccount, SessionDetail, Settings, SpeakerDetail, SpeakerRow, StaffInvite, StaffRow, Subcommittee, Track,
+  ActivityFilters,
+  ActivityItem,
+  ActivityPage,
+  Agenda,
+  Announcement,
+  CheckInPoint,
+  CheckInSheet,
+  CurrentUser,
+  DirectoryPerson,
+  Enrollment,
+  GroupMeCleanup,
+  EventHome,
+  EventLink,
+  EventStats,
+  EventSummary,
+  HersEvent,
+  MyEvent,
+  MyProfile,
+  PersonAccount,
+  SessionDetail,
+  Settings,
+  SpeakerDetail,
+  SpeakerRow,
+  StaffInvite,
+  StaffRow,
+  Subcommittee,
+  Track,
 } from "./types";
 
 /**
@@ -45,7 +69,14 @@ export async function getMyProfile(): Promise<MyProfile | null> {
 
 export async function getEventHome(eventId: string): Promise<EventHome> {
   void eventId;
-  return { unreadCount: 0, upNext: [], tracks: [], links: [], laterLinks: [], mySubcommittees: [] };
+  return {
+    unreadCount: 0,
+    upNext: [],
+    tracks: [],
+    links: [],
+    laterLinks: [],
+    mySubcommittees: [],
+  };
 }
 
 export async function getAgenda(eventId: string): Promise<Agenda> {
@@ -53,8 +84,12 @@ export async function getAgenda(eventId: string): Promise<Agenda> {
   return { sessions: [], tracks: [], speakers: [] };
 }
 
-export async function getSessionDetail(eventId: string, sessionId: string): Promise<SessionDetail | null> {
-  void eventId; void sessionId;
+export async function getSessionDetail(
+  eventId: string,
+  sessionId: string,
+): Promise<SessionDetail | null> {
+  void eventId;
+  void sessionId;
   return null;
 }
 
@@ -63,17 +98,25 @@ export async function getSpeakers(eventId: string): Promise<SpeakerRow[]> {
   return [];
 }
 
-export async function getSpeakerDetail(eventId: string, speakerId: string): Promise<SpeakerDetail | null> {
-  void eventId; void speakerId;
+export async function getSpeakerDetail(
+  eventId: string,
+  speakerId: string,
+): Promise<SpeakerDetail | null> {
+  void eventId;
+  void speakerId;
   return null;
 }
 
-export async function getDirectory(eventId: string): Promise<DirectoryPerson[]> {
+export async function getDirectory(
+  eventId: string,
+): Promise<DirectoryPerson[]> {
   void eventId;
   return [];
 }
 
-export async function getAnnouncements(eventId: string): Promise<Announcement[]> {
+export async function getAnnouncements(
+  eventId: string,
+): Promise<Announcement[]> {
   void eventId;
   return [];
 }
@@ -87,26 +130,43 @@ export async function getStaffEvents(): Promise<EventSummary[]> {
   return [];
 }
 
-export async function getGroupMeCleanup(eventId: string): Promise<GroupMeCleanup | null> {
+export async function getGroupMeCleanup(
+  eventId: string,
+): Promise<GroupMeCleanup | null> {
   void eventId;
   return null;
 }
 
 export async function getEventStats(eventId: string): Promise<EventStats> {
   void eventId;
-  return { invited: 0, signedUp: 0, revoked: 0, subcommittees: 0, sessions: 0, speakers: 0 };
+  return {
+    invited: 0,
+    signedUp: 0,
+    revoked: 0,
+    subcommittees: 0,
+    sessions: 0,
+    speakers: 0,
+  };
 }
 
-export async function getRecentActivity(limit = 5): Promise<{ items: ActivityItem[]; unread: number }> {
+export async function getRecentActivity(
+  limit = 5,
+): Promise<{ items: ActivityItem[]; unread: number }> {
   void limit;
   return { items: [], unread: 0 };
 }
 
-export async function getActivityLog(filters: ActivityFilters): Promise<ActivityPage> {
+export async function getActivityLog(
+  filters: ActivityFilters,
+): Promise<ActivityPage> {
   return { items: [], total: 0, page: filters.page ?? 1, pageSize: 25 };
 }
 
-export async function getActivityFilterOptions(): Promise<{ actions: string[]; staff: { id: string; name: string }[]; events: { id: string; name: string }[] }> {
+export async function getActivityFilterOptions(): Promise<{
+  actions: string[];
+  staff: { id: string; name: string }[];
+  events: { id: string; name: string }[];
+}> {
   return { actions: [], staff: [], events: [] };
 }
 
@@ -115,7 +175,9 @@ export async function getEventLinks(eventId: string): Promise<EventLink[]> {
   return [];
 }
 
-export async function getTracks(eventId: string): Promise<(Track & { sessionCount: number })[]> {
+export async function getTracks(
+  eventId: string,
+): Promise<(Track & { sessionCount: number })[]> {
   void eventId;
   return [];
 }
@@ -125,17 +187,23 @@ export async function getEnrollments(eventId: string): Promise<Enrollment[]> {
   return [];
 }
 
-export async function getSubcommittees(eventId: string): Promise<Subcommittee[]> {
+export async function getSubcommittees(
+  eventId: string,
+): Promise<Subcommittee[]> {
   void eventId;
   return [];
 }
 
-export async function getStaffAnnouncements(eventId: string): Promise<Announcement[]> {
+export async function getStaffAnnouncements(
+  eventId: string,
+): Promise<Announcement[]> {
   void eventId;
   return [];
 }
 
-export async function getCheckInPoints(eventId: string): Promise<CheckInPoint[]> {
+export async function getCheckInPoints(
+  eventId: string,
+): Promise<CheckInPoint[]> {
   void eventId;
   return [];
 }
@@ -159,7 +227,24 @@ export async function getPerson(userId: string): Promise<PersonAccount | null> {
   return null;
 }
 
-export async function getStaffInvite(token: string): Promise<StaffInvite | null> {
-  void token;
+export async function getStaffInvite(
+  token: string,
+): Promise<StaffInvite | null> {
+  // void token;
+  // return null;
+
+  // TODO: remove once implemented
+  // Local preview only: /staff-signup/preview shows the new-staff form,
+  // /staff-signup/preview-reset shows the "set your staff password" version.
+  // NODE_ENV is "development" only under `npm run dev`, so this never appears on the live site.
+  if (process.env.NODE_ENV === "development" && token.startsWith("preview")) {
+    return {
+      token,
+      email: "you@hersnetwork.org",
+      createdAt: new Date().toISOString(),
+      invitedByName: "A staff member",
+      existingName: token === "preview-reset" ? "Your Name" : undefined,
+    };
+  }
   return null;
 }
