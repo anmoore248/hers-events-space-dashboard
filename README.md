@@ -33,3 +33,5 @@ so connecting the backend never means editing pages.
 Replace the bodies in `lib/data.ts` with database queries and the bodies in
 `lib/actions/*.ts` with real work. The full version of this project (hers-events-full.zip)
 does exactly that.
+
+Hello world?
