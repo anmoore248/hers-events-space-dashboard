@@ -12,7 +12,12 @@ export type EnrollmentStatus = "invited" | "active" | "revoked";
 export type Access = "full" | "read-only" | "none";
 export type EventStatus = "Upcoming" | "Active" | "Expired";
 
-export type CurrentUser = { id: string; name: string; email: string; role: Role };
+export type CurrentUser = {
+  id: string;
+  name: string;
+  email: string;
+  role: Role;
+};
 
 export type Settings = {
   messageStaffGroupMe: string;
@@ -39,7 +44,10 @@ export type HersEvent = {
 };
 
 /** A row in the staff events table. */
-export type EventSummary = HersEvent & { attendeeCount: number; groupMeCleanupDue: boolean };
+export type EventSummary = HersEvent & {
+  attendeeCount: number;
+  groupMeCleanupDue: boolean;
+};
 
 /** A card on the attendee dashboard. */
 export type MyEvent = {
@@ -89,7 +97,11 @@ export type AgendaSession = {
   description: string;
 };
 
-export type Agenda = { sessions: AgendaSession[]; tracks: Track[]; speakers: Speaker[] };
+export type Agenda = {
+  sessions: AgendaSession[];
+  tracks: Track[];
+  speakers: Speaker[];
+};
 
 export type EventLink = {
   id: string;
@@ -121,7 +133,12 @@ export type DirectoryPerson = {
   linkedin?: string;
 };
 
-export type Subcommittee = { id: string; name: string; groupMeUrl: string; memberCount: number };
+export type Subcommittee = {
+  id: string;
+  name: string;
+  groupMeUrl: string;
+  memberCount: number;
+};
 
 export type Announcement = {
   id: string;
@@ -154,17 +171,45 @@ export type ActivityItem = {
   unread: boolean;
 };
 
-export type ActivityPage = { items: ActivityItem[]; total: number; page: number; pageSize: number };
+export type ActivityPage = {
+  items: ActivityItem[];
+  total: number;
+  page: number;
+  pageSize: number;
+};
 
-export type ActivityFilters = { action?: string; who?: string; event?: string; page?: number };
+export type ActivityFilters = {
+  action?: string;
+  who?: string;
+  event?: string;
+  page?: number;
+};
 
 export type StaffRow =
-  | { kind: "staff"; id: string; name: string; email: string; status: "Active" | "Password cleared" | "Deactivated"; isMe: boolean }
-  | { kind: "invite"; id: string; email: string; signUpUrl: string; invitedByName?: string; createdAt: string };
+  | {
+      kind: "staff";
+      id: string;
+      name: string;
+      email: string;
+      status: "Active" | "Password cleared" | "Deactivated";
+      isMe: boolean;
+    }
+  | {
+      kind: "invite";
+      id: string;
+      email: string;
+      signUpUrl: string;
+      invitedByName?: string;
+      createdAt: string;
+    };
 
 export type PersonStatus = "Active" | "Password cleared" | "Deactivated";
 
-export type PersonEnrollment = { eventId: string; eventName: string; status: EnrollmentStatus | "expired" };
+export type PersonEnrollment = {
+  eventId: string;
+  eventName: string;
+  status: EnrollmentStatus | "expired";
+};
 
 export type PersonAccount = {
   id: string;
@@ -176,13 +221,32 @@ export type PersonAccount = {
   enrollments: PersonEnrollment[];
 };
 
-export type CheckInPoint = { id: string; label: string; date?: string; checkedIn: number };
+export type CheckInPoint = {
+  id: string;
+  label: string;
+  date?: string;
+  checkedIn: number;
+};
 
-export type CheckInAttendee = { enrollmentId: string; displayName: string; organization?: string; email: string };
+export type CheckInAttendee = {
+  enrollmentId: string;
+  displayName: string;
+  organization?: string;
+  email: string;
+};
 
-export type CheckIn = { pointId: string; enrollmentId: string; at: string; byName?: string };
+export type CheckIn = {
+  pointId: string;
+  enrollmentId: string;
+  at: string;
+  byName?: string;
+};
 
-export type CheckInSheet = { points: CheckInPoint[]; attendees: CheckInAttendee[]; checkIns: CheckIn[] };
+export type CheckInSheet = {
+  points: CheckInPoint[];
+  attendees: CheckInAttendee[];
+  checkIns: CheckIn[];
+};
 
 export type MyProfile = {
   displayName: string;
@@ -193,10 +257,24 @@ export type MyProfile = {
 };
 
 /** existingName is set when the link resets a locked-out staff member's password. */
-export type StaffInvite = { token: string; email: string; invitedByName?: string; createdAt: string; existingName?: string };
+export type StaffInvite = {
+  token: string;
+  email: string;
+  invitedByName?: string;
+  createdAt: string;
+  existingName?: string;
+};
 
-export type SessionDetail = { session: AgendaSession; track?: Track; speakers: Speaker[] };
+export type SessionDetail = {
+  session: AgendaSession;
+  track?: Track;
+  speakers: Speaker[];
+};
 
-export type GroupMeCleanup = { due: boolean; closedAt?: string; dueDate: string };
+export type GroupMeCleanup = {
+  due: boolean;
+  closedAt?: string;
+  dueDate: string;
+};
 
 export type SpeakerDetail = { speaker: Speaker; sessions: AgendaSession[] };

@@ -1,0 +1,322 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>HERS Events Schema</title>
+<style>
+  @page { size: 1700px 1180px; margin: 0; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: #fff; color: #1d2433; font-family: "Segoe UI", system-ui, sans-serif; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .page { position: relative; width: 1700px; height: 1180px; overflow: hidden; page-break-after: always; padding: 28px 34px; }
+  .page:last-child { page-break-after: auto; }
+  h1 { margin: 0; font-size: 26px; letter-spacing: -0.3px; }
+  .sub { color: #5b6475; font-size: 13.5px; margin-top: 4px; }
+  .canvas { position: absolute; left: 34px; top: 112px; right: 34px; bottom: 28px; }
+  svg.wires { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+  .card { position: absolute; width: 292px; background: #fff; border: 1.5px solid var(--c); border-radius: 7px; box-shadow: 0 1px 3px rgba(0,0,0,.08); font-size: 11.5px; overflow: hidden; }
+  .card .hd { background: var(--c); color: #fff; font-weight: 700; padding: 5px 9px; font-size: 13px; display: flex; justify-content: space-between; align-items: baseline; }
+  .card .hd small { font-weight: 500; opacity: .85; font-size: 10.5px; }
+  .row { display: flex; align-items: center; height: 19px; padding: 0 8px; border-top: 1px solid #eef0f4; gap: 6px; white-space: nowrap; }
+  .row .k { width: 30px; font-size: 8.5px; font-weight: 700; color: #8a93a6; flex: none; }
+  .row .k.pk { color: #b7791f; }
+  .row .k.fk { color: #2b6cb0; }
+  .row .n { font-family: Consolas, "Cascadia Mono", monospace; font-size: 11.5px; flex: 1; overflow: hidden; text-overflow: ellipsis; }
+  .row .n.req::after { content: " *"; color: #c53030; }
+  .row .t { color: #8a93a6; font-size: 10.5px; flex: none; }
+  .row .tag { font-size: 9px; padding: 0 4px; border-radius: 3px; background: #edf2f7; color: #4a5568; flex: none; }
+  .row .tag.cascade { background: #fed7d7; color: #9b2c2c; }
+  .row .tag.setnull { background: #fefcbf; color: #744210; }
+  .row .tag.uq { background: #e9d8fd; color: #553c9a; }
+  .row.fkrow { background: #f7faff; }
+  .legend { position: absolute; font-size: 12px; color: #334; background: #fafbfc; border: 1px solid #e2e6ee; border-radius: 8px; padding: 12px 14px; line-height: 1.55; }
+  .legend h3 { margin: 0 0 6px; font-size: 13px; }
+  .sw { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: -1px; margin-right: 6px; }
+  .domain { position: absolute; border: 1.5px dashed var(--c); border-radius: 12px; background: color-mix(in srgb, var(--c) 5%, transparent); }
+  .domain span { position: absolute; top: -10px; left: 12px; background: #fff; padding: 0 6px; font-size: 11px; font-weight: 700; color: var(--c); letter-spacing: .5px; text-transform: uppercase; }
+  /* notes page */
+  .notes { columns: 3; column-gap: 34px; margin-top: 22px; font-size: 13px; line-height: 1.5; }
+  .notes section { break-inside: avoid; margin-bottom: 18px; }
+  .notes h2 { font-size: 15px; margin: 0 0 6px; color: #1a365d; border-bottom: 2px solid #e2e8f0; padding-bottom: 3px; }
+  .notes code { font-family: Consolas, monospace; font-size: 12px; background: #f1f4f8; padding: 0 3px; border-radius: 3px; }
+  .notes pre { font-family: Consolas, monospace; font-size: 11.5px; background: #f1f4f8; padding: 8px 10px; border-radius: 6px; margin: 6px 0; white-space: pre-wrap; }
+  .notes ul { margin: 4px 0; padding-left: 18px; }
+  .notes li { margin: 2px 0; }
+</style>
+</head>
+<body>
+
+<div class="page" id="p1">
+  <h1>HERS Events — Database Schema (public)</h1>
+  <div class="sub">Generated from <code>app/db/schema.ts</code> + <code>relations.ts</code>. Arrows point from a foreign-key column to the primary key it references. The <code>neon_auth</code> schema is on page 2; query notes on page 3.</div>
+  <div class="canvas" id="c1"><svg class="wires"></svg></div>
+</div>
+
+<div class="page" id="p2">
+  <h1>neon_auth schema (managed by Neon Auth)</h1>
+  <div class="sub">A separate Postgres schema provisioned by Neon Auth. It is <b>not linked</b> to the public tables — the app's FKs all point at <code>public.user</code> (text ids), not <code>neon_auth.user</code> (uuid ids).</div>
+  <div class="canvas" id="c2"><svg class="wires"></svg></div>
+</div>
+
+<div class="page" id="p3">
+  <h1>Notes for writing queries &amp; server functions</h1>
+  <div class="sub">Things in the schema that will shape your code — cascade rules, uniqueness, join tables and the Drizzle relation names you can use in <code>db.query.*.findMany({ with: … })</code>.</div>
+  <div class="notes">
+    <section>
+      <h2>The two hubs</h2>
+      <ul>
+        <li><b>events</b> owns almost everything: enrollments, check_in_points, subcommittees, announcements, tracks, sessions_agenda, speakers, event_links. Deleting an event <b>cascades</b> to all of them (and onward to check_ins, subcommittee_members, announcement_reads, session_speakers).</li>
+        <li><b>user</b> is the actor: who created an event, sent an announcement, checked someone in, invited staff, changed a setting, or wrote an activity_log row.</li>
+      </ul>
+    </section>
+    <section>
+      <h2>Deleting a user will fail if…</h2>
+      <p>These FKs to <code>user.id</code> have <b>no ON DELETE</b> rule (Postgres default = NO ACTION), so the delete is rejected while any row still points at the user:</p>
+      <ul>
+        <li><code>events.created_by</code></li>
+        <li><code>announcements.sent_by</code></li>
+        <li><code>check_ins.checked_in_by</code></li>
+        <li><code>staff_invites.invited_by</code></li>
+        <li><code>enrollments.user_id</code> (nullable)</li>
+        <li><code>settings.updated_by</code> (nullable)</li>
+        <li><code>activity_log.actor_id</code> (nullable)</li>
+      </ul>
+      <p>Only <code>account</code>, <code>session</code> and <code>announcement_reads</code> cascade. Plan to reassign / null these out, or ban instead of delete.</p>
+    </section>
+    <section>
+      <h2>Enrollment lifecycle</h2>
+      <ul>
+        <li>An enrollment is created from an <b>email</b> first: <code>invited_email</code> is required, <code>user_id</code> is nullable and filled in when the attendee signs up.</li>
+        <li><code>status</code> enum: <code>invited</code> → <code>active</code> → <code>revoked</code> (default <code>invited</code>).</li>
+        <li>Unique on <code>(event_id, invited_email)</code> — use <code>onConflictDoNothing</code>/<code>DoUpdate</code> for bulk invites.</li>
+        <li>Access: <code>events.access_expiry</code> is the event-wide cutoff; <code>enrollments.individual_expiry</code> can override per person.</li>
+        <li><code>events.access_key</code> is unique — a natural lookup key for join links.</li>
+      </ul>
+    </section>
+    <section>
+      <h2>Check-ins</h2>
+      <ul>
+        <li>Each event has one or more <b>check_in_points</b> (default label "Arrival", optional <code>date</code> for multi-day events).</li>
+        <li>A check-in links a point + an <b>enrollment</b> (not a user) + the staff user who scanned it.</li>
+        <li>Unique on <code>(point_id, enrollment_id)</code> → one check-in per person per point. Duplicate scans will throw unless you handle the conflict.</li>
+      </ul>
+    </section>
+    <section>
+      <h2>Join tables (composite PKs, no id column)</h2>
+      <ul>
+        <li><code>announcement_reads</code> (announcement_id, user_id) + <code>read_at</code></li>
+        <li><code>session_speakers</code> (session_id, speaker_id) + <code>sort_order</code></li>
+        <li><code>subcommittee_members</code> (subcommittee_id, enrollment_id)</li>
+      </ul>
+      <p>Insert with <code>onConflictDoNothing()</code> to make "mark read" / "add member" idempotent.</p>
+    </section>
+    <section>
+      <h2>Agenda</h2>
+      <ul>
+        <li><code>sessions_agenda</code> = a talk/slot (the table name avoids clashing with the auth <code>session</code> table). Indexed on <code>(event_id, starts_at)</code> — order by <code>starts_at</code>.</li>
+        <li><code>track_id</code> is optional and <b>set null</b> when a track is deleted.</li>
+        <li>Speakers belong to an event and attach to sessions through <code>session_speakers</code>.</li>
+      </ul>
+    </section>
+    <section>
+      <h2>Drizzle relation names (relations.ts)</h2>
+<pre>events:   enrollments, checkInPoints, subcommittees,
+          announcements, tracksEventId, sessionsAgenda,
+          speakers, eventLinks, activityLogs,
+          user (= creator)
+enrollments: event, user, checkIns,
+          subcommitteeMembers, subcommittees (via join)
+sessionsAgenda: event, track, sessionSpeakers,
+          speakers (via join)
+announcements: event, user (= sender),
+          announcementReads, users (readers, via join)
+checkIns: checkInPoint, enrollment, user (= staff)
+user:     enrollments, eventsCreatedBy,
+          announcementsSentBy, checkIns, staffInvites, …</pre>
+      <p>Note: an event's tracks are <code>tracksEventId</code>, not <code>tracks</code> (<code>tracksViaSessionsAgenda</code> goes through the agenda instead).</p>
+<pre>db.query.events.findFirst({
+  where: { id },
+  with: {
+    sessionsAgenda: { with: { speakers: true, track: true } },
+    enrollments: { with: { checkIns: true } },
+  },
+})</pre>
+    </section>
+    <section>
+      <h2>Auth / admin tables</h2>
+      <ul>
+        <li><code>user</code>, <code>account</code>, <code>session</code>, <code>verification</code> are the Better Auth tables (text ids). <code>user.role</code>, <code>banned</code>, <code>ban_*</code> come from the admin plugin; <code>password_cleared</code> is app-specific.</li>
+        <li><code>staff_invites</code>: unique <code>token</code>; an invite is open while <code>used_at</code> and <code>cancelled_at</code> are both null.</li>
+        <li><code>settings</code>: key/value store, <code>key</code> is the PK — upsert on it.</li>
+        <li><code>activity_log.event_id</code> is <b>set null</b> when the event is deleted, so the log survives.</li>
+      </ul>
+    </section>
+  </div>
+</div>
+
+<script>
+const D = {
+  auth:   ["#4a5568", "Auth (Better Auth)"],
+  admin:  ["#6b46c1", "Staff & admin"],
+  core:   ["#2b6cb0", "Events"],
+  attend: ["#c05621", "Attendees & check-in"],
+  comms:  ["#b83280", "Announcements"],
+  agenda: ["#2f855a", "Agenda"],
+  neon:   ["#4a5568", "neon_auth"],
+};
+// col: [name, type, flags] ; flags: pk, req, uq, fk:"table", del:"cascade"|"setnull"
+const pk = { pk: 1, req: 1 };
+const T1 = {
+  account: { d: "auth", cols: [["id","text",pk],["account_id","text",{req:1}],["provider_id","text",{req:1}],["user_id","text",{fk:"user",req:1,del:"cascade"}],["access_token","text"],["refresh_token","text"],["id_token","text"],["access_token_expires_at","ts"],["refresh_token_expires_at","ts"],["scope","text"],["password","text"],["created_at","ts",{req:1}],["updated_at","ts",{req:1}]] },
+  session: { d: "auth", cols: [["id","text",pk],["token","text",{req:1,uq:1}],["user_id","text",{fk:"user",req:1,del:"cascade"}],["expires_at","ts",{req:1}],["ip_address","text"],["user_agent","text"],["impersonated_by","text"],["created_at","ts",{req:1}],["updated_at","ts",{req:1}]] },
+  verification: { d: "auth", cols: [["id","text",pk],["identifier","text",{req:1}],["value","text",{req:1}],["expires_at","ts",{req:1}],["created_at","ts",{req:1}],["updated_at","ts",{req:1}]] },
+  user: { d: "auth", cols: [["id","text",pk],["name","text",{req:1}],["email","text",{req:1,uq:1}],["email_verified","bool",{req:1}],["image","text"],["role","text"],["banned","bool"],["ban_reason","text"],["ban_expires","ts"],["password_cleared","bool",{req:1}],["created_at","ts",{req:1}],["updated_at","ts",{req:1}]] },
+  staff_invites: { d: "admin", cols: [["id","uuid",pk],["email","text",{req:1}],["token","text",{req:1,uq:1}],["invited_by","text",{fk:"user",req:1}],["used_at","tstz"],["cancelled_at","tstz"],["created_at","tstz",{req:1}]] },
+  settings: { d: "admin", cols: [["key","text",pk],["value","text",{req:1}],["updated_by","text",{fk:"user"}],["updated_at","tstz",{req:1}]] },
+  activity_log: { d: "admin", cols: [["id","uuid",pk],["actor_id","text",{fk:"user"}],["action","text",{req:1}],["details","text",{req:1}],["event_id","uuid",{fk:"events",del:"setnull"}],["created_at","tstz",{req:1}]] },
+  events: { d: "core", cols: [["id","uuid",pk],["name","text",{req:1}],["description","text",{req:1}],["start_date","date",{req:1}],["end_date","date",{req:1}],["time_zone","text",{req:1}],["location","text"],["virtual_details","text"],["access_expiry","date",{req:1}],["access_key","text",{req:1,uq:1}],["created_by","text",{fk:"user",req:1}],["created_at","tstz",{req:1}]] },
+  event_links: { d: "core", cols: [["id","uuid",pk],["event_id","uuid",{fk:"events",req:1,del:"cascade"}],["label","text",{req:1}],["url","text",{req:1}],["sort_order","int",{req:1}],["visible_from","tstz"],["visible_until","tstz"]] },
+  announcements: { d: "comms", cols: [["id","uuid",pk],["event_id","uuid",{fk:"events",req:1,del:"cascade"}],["title","text",{req:1}],["body","text",{req:1}],["pinned","bool",{req:1}],["sent_by","text",{fk:"user",req:1}],["created_at","tstz",{req:1}],["updated_at","tstz",{req:1}]] },
+  announcement_reads: { d: "comms", cols: [["announcement_id","uuid",{pk:1,req:1,fk:"announcements",del:"cascade"}],["user_id","text",{pk:1,req:1,fk:"user",del:"cascade"}],["read_at","tstz",{req:1}]] },
+  check_in_points: { d: "attend", cols: [["id","uuid",pk],["event_id","uuid",{fk:"events",req:1,del:"cascade"}],["label","text",{req:1}],["date","date"]] },
+  enrollments: { d: "attend", cols: [["id","uuid",pk],["event_id","uuid",{fk:"events",req:1,del:"cascade",uq:1}],["user_id","text",{fk:"user"}],["invited_email","text",{req:1,uq:1}],["status","enum",{req:1}],["individual_expiry","date"],["display_name","text",{req:1}],["title","text"],["organization","text"],["linkedin","text"],["created_at","tstz",{req:1}]] },
+  check_ins: { d: "attend", cols: [["id","uuid",pk],["point_id","uuid",{fk:"check_in_points",req:1,del:"cascade",uq:1}],["enrollment_id","uuid",{fk:"enrollments",req:1,del:"cascade",uq:1}],["checked_in_at","tstz",{req:1}],["checked_in_by","text",{fk:"user",req:1}]] },
+  subcommittees: { d: "attend", cols: [["id","uuid",pk],["event_id","uuid",{fk:"events",req:1,del:"cascade"}],["name","text",{req:1}],["group_me_url","text",{req:1}]] },
+  subcommittee_members: { d: "attend", cols: [["subcommittee_id","uuid",{pk:1,req:1,fk:"subcommittees",del:"cascade"}],["enrollment_id","uuid",{pk:1,req:1,fk:"enrollments",del:"cascade"}]] },
+  tracks: { d: "agenda", cols: [["id","uuid",pk],["event_id","uuid",{fk:"events",req:1,del:"cascade"}],["name","text",{req:1}],["sort_order","int",{req:1}]] },
+  sessions_agenda: { d: "agenda", cols: [["id","uuid",pk],["event_id","uuid",{fk:"events",req:1,del:"cascade"}],["track_id","uuid",{fk:"tracks",del:"setnull"}],["title","text",{req:1}],["starts_at","tstz",{req:1}],["ends_at","tstz",{req:1}],["location","text"],["virtual_link","text"],["description","text",{req:1}]] },
+  session_speakers: { d: "agenda", cols: [["session_id","uuid",{pk:1,req:1,fk:"sessions_agenda",del:"cascade"}],["speaker_id","uuid",{pk:1,req:1,fk:"speakers",del:"cascade"}],["sort_order","int",{req:1}]] },
+  speakers: { d: "agenda", cols: [["id","uuid",pk],["event_id","uuid",{fk:"events",req:1,del:"cascade"}],["name","text",{req:1}],["title","text"],["organization","text"],["bio","text",{req:1}],["email","text"],["linkedin","text"],["website","text"]] },
+};
+// x positions of columns, then cards stacked top→bottom with explicit y
+const L1 = {
+  account: [0, 0], session: [0, 300], verification: [0, 516], staff_invites: [0, 700], settings: [0, 895],
+  user: [335, 0], activity_log: [335, 300], announcements: [335, 520], announcement_reads: [335, 740],
+  events: [670, 170], event_links: [670, 470], tracks: [670, 705], speakers: [670, 835],
+  check_in_points: [1005, 0], enrollments: [1005, 135], subcommittees: [1005, 395], sessions_agenda: [1005, 670], session_speakers: [1005, 900],
+  check_ins: [1340, 0], subcommittee_members: [1340, 330],
+};
+const DOM1 = [
+  ["auth", ["account","session","verification"]], ["auth", ["user"]], ["admin", ["staff_invites","settings"]], ["admin", ["activity_log"]],
+  ["core", ["events","event_links"]], ["comms", ["announcements","announcement_reads"]], ["agenda", ["tracks","speakers","sessions_agenda","session_speakers"]],
+  ["attend", ["check_in_points","enrollments","subcommittees","check_ins","subcommittee_members"]],
+];
+
+const T2 = {
+  user: { d: "neon", cols: [["id","uuid",pk],["name","text",{req:1}],["email","text",{req:1,uq:1}],["emailVerified","bool",{req:1}],["image","text"],["role","text"],["banned","bool"],["banReason","text"],["banExpires","tstz"],["createdAt","tstz",{req:1}],["updatedAt","tstz",{req:1}]] },
+  account: { d: "neon", cols: [["id","uuid",pk],["accountId","text",{req:1}],["providerId","text",{req:1}],["userId","uuid",{fk:"user",req:1,del:"cascade"}],["accessToken","text"],["refreshToken","text"],["idToken","text"],["accessTokenExpiresAt","tstz"],["refreshTokenExpiresAt","tstz"],["scope","text"],["password","text"],["createdAt","tstz",{req:1}],["updatedAt","tstz",{req:1}]] },
+  session: { d: "neon", cols: [["id","uuid",pk],["token","text",{req:1,uq:1}],["userId","uuid",{fk:"user",req:1,del:"cascade"}],["expiresAt","tstz",{req:1}],["ipAddress","text"],["userAgent","text"],["impersonatedBy","text"],["activeOrganizationId","text"],["createdAt","tstz",{req:1}],["updatedAt","tstz",{req:1}]] },
+  organization: { d: "neon", cols: [["id","uuid",pk],["name","text",{req:1}],["slug","text",{req:1,uq:1}],["logo","text"],["metadata","text"],["createdAt","tstz",{req:1}]] },
+  member: { d: "neon", cols: [["id","uuid",pk],["organizationId","uuid",{fk:"organization",req:1,del:"cascade"}],["userId","uuid",{fk:"user",req:1,del:"cascade"}],["role","text",{req:1}],["createdAt","tstz",{req:1}]] },
+  invitation: { d: "neon", cols: [["id","uuid",pk],["organizationId","uuid",{fk:"organization",req:1,del:"cascade"}],["inviterId","uuid",{fk:"user",req:1,del:"cascade"}],["email","text",{req:1}],["role","text"],["status","text",{req:1}],["expiresAt","tstz",{req:1}],["createdAt","tstz",{req:1}]] },
+  verification: { d: "neon", cols: [["id","uuid",pk],["identifier","text",{req:1}],["value","text",{req:1}],["expiresAt","tstz",{req:1}],["createdAt","tstz",{req:1}],["updatedAt","tstz",{req:1}]] },
+  jwks: { d: "neon", cols: [["id","uuid",pk],["publicKey","text",{req:1}],["privateKey","text",{req:1}],["alg","text"],["crv","text"],["createdAt","tstz",{req:1}],["expiresAt","tstz"]] },
+  project_config: { d: "neon", cols: [["id","uuid",pk],["name","text",{req:1}],["endpoint_id","text",{req:1,uq:1}],["trusted_origins","jsonb",{req:1}],["social_providers","jsonb",{req:1}],["email_provider","jsonb"],["email_and_password","jsonb"],["allow_localhost","bool",{req:1}],["plugin_configs","jsonb"],["webhook_config","jsonb"],["created_at","tstz",{req:1}],["updated_at","tstz",{req:1}]] },
+};
+const L2 = {
+  account: [0, 0], session: [0, 320],
+  user: [380, 120],
+  member: [760, 0], invitation: [760, 190],
+  organization: [1140, 60],
+  verification: [0, 600], jwks: [380, 600], project_config: [760, 600],
+};
+const DOM2 = [];
+
+function build(canvasId, T, L, domains, legendPos) {
+  const cv = document.getElementById(canvasId);
+  const svg = cv.querySelector("svg");
+  const rows = {};
+  for (const [name, t] of Object.entries(T)) {
+    const [x, y] = L[name];
+    const el = document.createElement("div");
+    el.className = "card";
+    el.style.cssText = `--c:${D[t.d][0]};left:${x}px;top:${y}px`;
+    el.innerHTML = `<div class="hd">${name}<small>${t.cols.length} cols</small></div>` + t.cols.map(([n, ty, f = {}]) => {
+      const k = f.pk && f.fk ? "PK FK" : f.pk ? "PK" : f.fk ? "FK" : "";
+      const cls = f.pk ? "pk" : f.fk ? "fk" : "";
+      let tags = "";
+      if (f.fk) tags += `<span class="tag">→ ${f.fk}</span>`;
+      if (f.del === "cascade") tags += `<span class="tag cascade">cascade</span>`;
+      if (f.del === "setnull") tags += `<span class="tag setnull">set null</span>`;
+      if (f.uq) tags += `<span class="tag uq">unique</span>`;
+      return `<div class="row ${f.fk ? "fkrow" : ""}" data-col="${n}"><span class="k ${cls}">${k.replace(" ", "·")}</span><span class="n ${f.req && !f.pk ? "req" : ""}">${n}</span>${tags}<span class="t">${ty}</span></div>`;
+    }).join("");
+    cv.appendChild(el);
+    rows[name] = el;
+  }
+  const cvr = cv.getBoundingClientRect();
+  for (const [d, names] of domains) {
+    const rs = names.map((n) => rows[n].getBoundingClientRect());
+    const x = Math.min(...rs.map((r) => r.left)) - cvr.left - 12, y = Math.min(...rs.map((r) => r.top)) - cvr.top - 14;
+    const w = Math.max(...rs.map((r) => r.right)) - cvr.left + 12 - x, h = Math.max(...rs.map((r) => r.bottom)) - cvr.top + 12 - y;
+    const el = document.createElement("div");
+    el.className = "domain";
+    el.style.cssText = `--c:${D[d][0]};left:${x}px;top:${y}px;width:${w}px;height:${h}px`;
+    el.innerHTML = `<span>${D[d][1]}</span>`;
+    cv.insertBefore(el, cv.firstChild);
+  }
+  const box = (el) => { const r = el.getBoundingClientRect(); return { l: r.left - cvr.left, r: r.right - cvr.left, y: (r.top + r.bottom) / 2 - cvr.top }; };
+  const ns = "http://www.w3.org/2000/svg";
+  svg.innerHTML = `<defs>
+    <marker id="ar-${canvasId}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="context-stroke"/></marker>
+  </defs>`;
+  const colorFor = (target) => target === "user" ? "#6b46c1" : target === "events" ? "#2b6cb0" : "#718096";
+  // stagger offsets per target side so parallel wires stay distinguishable
+  const fan = {};
+  for (const [name, t] of Object.entries(T)) {
+    for (const [n, , f = {}] of t.cols) {
+      if (!f.fk) continue;
+      const src = box(rows[name].querySelector(`[data-col="${n}"]`));
+      const tgt = box(rows[f.fk].querySelector(".row .k.pk").parentElement);
+      const sameCol = Math.abs(src.l - tgt.l) < 5;
+      let sx, tx, path;
+      const key = f.fk;
+      fan[key] = (fan[key] || 0) + 1;
+      const off = (fan[key] % 6) * 3 - 7;
+      if (sameCol) {
+        sx = src.l; tx = tgt.l;
+        const bulge = sx - 30 - Math.min(60, Math.abs(src.y - tgt.y) / 12);
+        path = `M${sx},${src.y} C${bulge},${src.y} ${bulge},${tgt.y + off} ${tx},${tgt.y + off}`;
+      } else {
+        const right = tgt.l > src.l;
+        sx = right ? src.r : src.l; tx = right ? tgt.l : tgt.r;
+        const dx = Math.max(50, Math.abs(tx - sx) * 0.45);
+        path = `M${sx},${src.y} C${sx + (right ? dx : -dx)},${src.y} ${tx + (right ? -dx : dx)},${tgt.y + off} ${tx},${tgt.y + off}`;
+      }
+      const p = document.createElementNS(ns, "path");
+      p.setAttribute("d", path);
+      p.setAttribute("fill", "none");
+      p.setAttribute("stroke", colorFor(f.fk));
+      p.setAttribute("stroke-width", "1.6");
+      p.setAttribute("stroke-opacity", "0.75");
+      if (!f.req) p.setAttribute("stroke-dasharray", "5 4");
+      p.setAttribute("marker-end", `url(#ar-${canvasId})`);
+      svg.appendChild(p);
+      const c = document.createElementNS(ns, "circle");
+      c.setAttribute("cx", sx); c.setAttribute("cy", src.y); c.setAttribute("r", 3.2);
+      c.setAttribute("fill", colorFor(f.fk));
+      svg.appendChild(c);
+    }
+  }
+}
+
+build("c1", T1, L1, DOM1);
+build("c2", T2, L2, DOM2);
+
+// legend on page 1
+const lg = document.createElement("div");
+lg.className = "legend";
+lg.style.cssText = "left:1320px; top:500px; width:290px;";
+lg.innerHTML = `<h3>How to read this</h3>
+<div><b style="color:#b7791f">PK</b> primary key &nbsp; <b style="color:#2b6cb0">FK</b> foreign key &nbsp; <span style="color:#c53030">*</span> NOT NULL</div>
+<div>● FK column (many side) → arrow at the referenced PK (one side)</div>
+<div><svg width="34" height="8"><line x1="0" y1="4" x2="34" y2="4" stroke="#718096" stroke-width="2"/></svg> required FK &nbsp; <svg width="34" height="8"><line x1="0" y1="4" x2="34" y2="4" stroke="#718096" stroke-width="2" stroke-dasharray="5 4"/></svg> nullable FK</div>
+<div><span class="sw" style="background:#6b46c1"></span>wire to <b>user</b> &nbsp; <span class="sw" style="background:#2b6cb0"></span>wire to <b>events</b> &nbsp; <span class="sw" style="background:#718096"></span>other</div>
+<div style="margin-top:6px"><span class="tag cascade" style="font-size:10px;padding:0 4px;border-radius:3px;background:#fed7d7;color:#9b2c2c">cascade</span> child rows deleted with parent<br>
+<span style="font-size:10px;padding:0 4px;border-radius:3px;background:#fefcbf;color:#744210">set null</span> FK cleared when parent deleted<br>
+no tag on an FK = delete of parent is <b>blocked</b><br>
+<span style="font-size:10px;padding:0 4px;border-radius:3px;background:#e9d8fd;color:#553c9a">unique</span> unique alone or as part of a composite</div>
+<div style="margin-top:6px">Types: <code>ts</code> timestamp, <code>tstz</code> timestamp with tz.<br><code>status</code> enum = invited | active | revoked</div>`;
+document.getElementById("c1").appendChild(lg);
+</script>
+</body>
+</html>
