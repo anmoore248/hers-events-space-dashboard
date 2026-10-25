@@ -51,12 +51,13 @@ export function StaffSignUpForm({
           >
             <Input id="email" value={email} readOnly disabled />
           </FormField>
+
           <FormField
             label="Your name"
             htmlFor="name"
             error={errors.name?.message}
           >
-            <Input id="name" autoComplete="name" {...register("name")} />
+            <Input id="name" autoComplete="name" placeholder="Jane Doe" {...register("name")} />
           </FormField>
           <FormField
             label="Create password"

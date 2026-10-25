@@ -33,3 +33,25 @@ so connecting the backend never means editing pages.
 Replace the bodies in `lib/data.ts` with database queries and the bodies in
 `lib/actions/*.ts` with real work. The full version of this project (hers-events-full.zip)
 does exactly that.
+
+## Notes
+
+```tsx
+import { z } from "zod";
+
+const passwordSchema = z
+  .string()
+  .min(8, "Password must be at least 8 characters")
+  .refine((password) => /[A-Z]/.test(password), {
+    message: "Must contain at least one uppercase letter",
+  })
+  .refine((password) => /[a-z]/.test(password), {
+    message: "Must contain at least one lowercase letter",
+  })
+  .refine((password) => /[0-9]/.test(password), {
+    message: "Must contain at least one number",
+  })
+  .refine((password) => /[^A-Za-z0-9]/.test(password), {
+    message: "Must contain at least one special character",
+  });   
+  ```

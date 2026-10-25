@@ -17,6 +17,7 @@ import { auth } from "@/lib/auth/server";
 
 /* Not connected yet: each action below returns notConnected(). See README → "Connecting the backend". */
 
+// FIXME: Signin -- DONE
 export async function signIn(
   values: LoginInput,
 ): Promise<ActionResult<{ redirectTo: string }>> {
@@ -43,7 +44,7 @@ export async function signIn(
     } else if (findUserInNeonDB.length === 1) {
       const { userRole } = findUserInNeonDB[0];
 
-      // 3. route to correct page based on role
+      // 3. route to correct page based on role (admin = HERS staff, user = attendee)
       if (userRole?.toLocaleLowerCase() === "admin") {
         return {
           ok: true,
@@ -57,7 +58,8 @@ export async function signIn(
       } else {
         return {
           ok: false,
-          error: 'You are not designated as a "staff member" or an "attendee".',
+          error:
+            'You are not designated as a "staff member" or an "attendee". Please contact HERS at <<hers@hersnetwork.org>> to resolve this issue.',
         };
       }
     } else {
@@ -68,13 +70,17 @@ export async function signIn(
       };
     }
   } else {
-    return { ok: false, error: checkBetterAuth.error.message as string };
+    const errorMessage = checkBetterAuth.error.message as string;
+    return {
+      ok: false,
+      error: `${errorMessage}. Please contact HERS at <<hers@hersnetwork.org>> to resolve this issue.`,
+    };
   }
-
-  return notConnected();
 }
 
-export async function signOut(): Promise<void> {}
+export async function signOut(): Promise<void> {
+  // const {data: session} = await auth.revokeSession(); ??
+}
 
 export async function verifySignUp(
   values: SignUpVerifyInput,
@@ -90,19 +96,11 @@ export async function completeSignUp(
   return notConnected();
 }
 
-/**
- * Allows staff to signup using the sign-up form
- * @param token
- * @param values
- * @returns
- */
 export async function staffSignUp(
   token: string,
   values: StaffSignUpInput,
 ): Promise<ActionResult<{ redirectTo: string }>> {
-  // void token;
-  // void values;
-  console.log("TEST token", token, "values", values.name);
+  console.log("values", values, "token", token);
   return notConnected();
 }
 

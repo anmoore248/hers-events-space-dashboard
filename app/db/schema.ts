@@ -17,6 +17,7 @@ import {
 import { sql } from "drizzle-orm";
 
 export const neonAuth = pgSchema("neon_auth");
+
 export const enrollmentStatus = pgEnum("enrollment_status", [
   "invited",
   "active",

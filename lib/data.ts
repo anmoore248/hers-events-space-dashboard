@@ -28,6 +28,8 @@ import type {
   Subcommittee,
   Track,
 } from "./types";
+import { auth } from "@/lib/auth/server";
+import { db } from "@/app";
 
 /**
  * Every read the interface makes goes through this file. Nothing is connected
@@ -43,9 +45,29 @@ export const DEFAULT_SETTINGS: Settings = {
 };
 
 /* ----------------------------- everyone ----------------------------- */
-
+// FIXME: Get's the current user; similar to localStorage -- DONE
 export async function getCurrentUser(): Promise<CurrentUser | null> {
-  return null;
+  const { data: session } = await auth.getSession();
+
+  if (!session?.user) {
+    return null;
+  }
+
+  const user = await db.query.user.findFirst({
+    where: {
+      id: session.user.id,
+    },
+  });
+
+  return {
+    id: session.user.id,
+    name: session.user.name,
+    email: session.user.email,
+    role:
+      user && user.role === session.user.role && session.user.role === "admin"
+        ? "staff"
+        : "attendee",
+  };
 }
 
 export async function getSettings(): Promise<Settings> {
@@ -230,21 +252,21 @@ export async function getPerson(userId: string): Promise<PersonAccount | null> {
 export async function getStaffInvite(
   token: string,
 ): Promise<StaffInvite | null> {
-  // void token;
-  // return null;
+  void token;
+  return null;
 
   // TODO: remove once implemented
   // Local preview only: /staff-signup/preview shows the new-staff form,
   // /staff-signup/preview-reset shows the "set your staff password" version.
   // NODE_ENV is "development" only under `npm run dev`, so this never appears on the live site.
-  if (process.env.NODE_ENV === "development" && token.startsWith("preview")) {
-    return {
-      token,
-      email: "you@hersnetwork.org",
-      createdAt: new Date().toISOString(),
-      invitedByName: "A staff member",
-      existingName: token === "preview-reset" ? "Your Name" : undefined,
-    };
-  }
-  return null;
+  // if (process.env.NODE_ENV === "development" && token.startsWith("preview")) {
+  //   return {
+  //     token,
+  //     email: "you@hersnetwork.org",
+  //     createdAt: new Date().toISOString(),
+  //     invitedByName: "A staff member",
+  //     existingName: token === "preview-reset" ? "Your Name" : undefined,
+  //   };
+  // }
+  // return null;
 }

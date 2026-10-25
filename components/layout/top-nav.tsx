@@ -12,15 +12,19 @@ export function TopNav({ items }: { items: NavItem[] }) {
     <nav aria-label="Main" className="flex items-center gap-1 overflow-x-auto">
       {items.map((item) => {
         const prefixes = item.match ?? [item.href];
-        const active = prefixes.some((p) => pathname === p || pathname.startsWith(p + "/"));
+        const active = prefixes.some(
+          (p) => pathname === p || pathname.startsWith(p + "/"),
+        );
         return (
           <Link
             key={item.href}
             href={item.href}
             aria-current={active ? "page" : undefined}
             className={cn(
-              "whitespace-nowrap border-b-2 px-3 py-2 text-[13px] font-semibold no-underline",
-              active ? "border-primary text-primary" : "border-transparent text-foreground hover:text-primary",
+              "border-b-2 px-3 py-2 text-[13px] font-semibold whitespace-nowrap no-underline",
+              active
+                ? "border-primary text-primary"
+                : "text-foreground hover:text-primary border-transparent",
             )}
           >
             {item.label}

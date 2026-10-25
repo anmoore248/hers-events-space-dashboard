@@ -5,7 +5,10 @@ import { z } from "zod";
  * (server actions, CSV import). Write once, validate in both places.
  */
 
-const password = z.string().min(10, "Use at least 10 characters.").max(128, "Use 128 characters or fewer.");
+const password = z
+  .string()
+  .min(10, "Use at least 10 characters.")
+  .max(128, "Use 128 characters or fewer.");
 const email = (message = "Enter a valid email address.") =>
   z.string().trim().toLowerCase().pipe(z.email(message));
 
@@ -14,7 +17,11 @@ export const loginSchema = z.object({
   password: z.string().min(1, "Enter your password."),
 });
 
-const accessKey = z.string().trim().toUpperCase().min(4, "Enter the access key from your invitation email.");
+const accessKey = z
+  .string()
+  .trim()
+  .toUpperCase()
+  .min(4, "Enter the access key from your invitation email.");
 
 export const signUpVerifySchema = z.object({
   email: email("Enter the email your invitation was sent to."),
@@ -29,14 +36,26 @@ export const setPasswordSchema = z
   });
 
 export const staffSignUpSchema = z
-  .object({ name: z.string().trim().min(1, "Enter your name."), password, confirmPassword: z.string() })
+  .object({
+    name: z.string().trim().min(1, "Enter your name."),
+    password,
+    confirmPassword: z.string(),
+  })
+  .refine((password) => /[^A-Za-z0-9]/.test(password.password), {
+    path: ["password"],
+    message: "Must contain at least one special character",
+  })
   .refine((d) => d.password === d.confirmPassword, {
     path: ["confirmPassword"],
     message: "Passwords don't match.",
   });
 
 export const changePasswordSchema = z
-  .object({ currentPassword: z.string().min(1, "Enter your current password."), newPassword: password, confirmPassword: z.string() })
+  .object({
+    currentPassword: z.string().min(1, "Enter your current password."),
+    newPassword: password,
+    confirmPassword: z.string(),
+  })
   .refine((d) => d.newPassword === d.confirmPassword, {
     path: ["confirmPassword"],
     message: "Passwords don't match.",
@@ -45,7 +64,10 @@ export const changePasswordSchema = z
 /** Step 2 of sign-up, checked again on the server together with step 1. */
 export const signUpCompleteSchema = signUpVerifySchema
   .extend({ password, confirmPassword: z.string() })
-  .refine((d) => d.password === d.confirmPassword, { path: ["confirmPassword"], message: "Passwords don't match." });
+  .refine((d) => d.password === d.confirmPassword, {
+    path: ["confirmPassword"],
+    message: "Passwords don't match.",
+  });
 
 export const addEventSchema = z.object({ accessKey });
 
@@ -54,7 +76,10 @@ export const linkedinUrl = z
   .string()
   .trim()
   .transform((v) => (v && !/^https?:\/\//.test(v) ? `https://${v}` : v))
-  .refine((v) => v === "" || /^https:\/\/(www\.)?linkedin\.com\//i.test(v), "Must be a linkedin.com address.");
+  .refine(
+    (v) => v === "" || /^https:\/\/(www\.)?linkedin\.com\//i.test(v),
+    "Must be a linkedin.com address.",
+  );
 
 export const profileSchema = z.object({
   displayName: z.string().trim().min(1, "Display name is required."),
@@ -87,12 +112,22 @@ export const sessionSchema = z
     start: z.string().min(1, "Choose a start time."),
     end: z.string().min(1, "Choose an end time."),
     location: z.string().optional(),
-    virtualLink: z.union([z.literal(""), z.url("Enter a full link, starting with https://")]).optional(),
+    virtualLink: z
+      .union([
+        z.literal(""),
+        z.url("Enter a full link, starting with https://"),
+      ])
+      .optional(),
     description: z.string().optional(),
   })
-  .refine((d) => !d.start || !d.end || d.end > d.start, { path: ["end"], message: "End must be after start." });
+  .refine((d) => !d.start || !d.end || d.end > d.start, {
+    path: ["end"],
+    message: "End must be after start.",
+  });
 
-export const sessionWithSpeakersSchema = sessionSchema.and(z.object({ speakerIds: z.array(z.string()) }));
+export const sessionWithSpeakersSchema = sessionSchema.and(
+  z.object({ speakerIds: z.array(z.string()) }),
+);
 
 export const speakerSchema = z.object({
   name: z.string().trim().min(1, "Name is required."),
@@ -101,20 +136,28 @@ export const speakerSchema = z.object({
   bio: z.string().optional(),
   email: z.union([z.literal(""), email("Enter a valid email.")]).optional(),
   linkedin: linkedinUrl.optional(),
-  website: z.union([z.literal(""), z.url("Enter a full link, starting with https://")]).optional(),
+  website: z
+    .union([z.literal(""), z.url("Enter a full link, starting with https://")])
+    .optional(),
 });
 
 export const eventLinkSchema = z
   .object({
     label: z.string().trim().min(1, "Label is required."),
-    url: z.url({ protocol: /^https?$/, error: "Enter a full link, starting with https://" }),
+    url: z.url({
+      protocol: /^https?$/,
+      error: "Enter a full link, starting with https://",
+    }),
     visibleFrom: z.string().optional(),
     visibleUntil: z.string().optional(),
   })
-  .refine((d) => !d.visibleFrom || !d.visibleUntil || d.visibleUntil > d.visibleFrom, {
-    path: ["visibleUntil"],
-    message: "Must be after “Visible from”.",
-  });
+  .refine(
+    (d) => !d.visibleFrom || !d.visibleUntil || d.visibleUntil > d.visibleFrom,
+    {
+      path: ["visibleUntil"],
+      message: "Must be after “Visible from”.",
+    },
+  );
 
 export const announcementSchema = z.object({
   title: z.string().trim().min(1, "Title is required."),
@@ -123,7 +166,10 @@ export const announcementSchema = z.object({
 });
 
 export const settingsSchema = z.object({
-  messageStaffGroupMe: z.union([z.literal(""), z.url({ protocol: /^https?$/, error: "Enter the full GroupMe link." })]),
+  messageStaffGroupMe: z.union([
+    z.literal(""),
+    z.url({ protocol: /^https?$/, error: "Enter the full GroupMe link." }),
+  ]),
   helpEmail: email(),
   groupMeCleanupDays: z.coerce.number().int().min(1).max(365),
 });
@@ -159,12 +205,22 @@ export const addAttendeeSchema = z.object({
 
 export const subcommitteeSchema = z.object({
   name: z.string().trim().min(1, "Name is required."),
-  groupMeUrl: z.union([z.literal(""), z.url({ protocol: /^https?$/, error: "Enter the full GroupMe link." })]),
+  groupMeUrl: z.union([
+    z.literal(""),
+    z.url({ protocol: /^https?$/, error: "Enter the full GroupMe link." }),
+  ]),
 });
 
-export const nameSchema = z.string().trim().min(1, "Enter a name.").max(80, "Use 80 characters or fewer.");
+export const nameSchema = z
+  .string()
+  .trim()
+  .min(1, "Enter a name.")
+  .max(80, "Use 80 characters or fewer.");
 
-export const checkInPointSchema = z.object({ label: nameSchema, date: z.string().optional() });
+export const checkInPointSchema = z.object({
+  label: nameSchema,
+  date: z.string().optional(),
+});
 
 export const emailOnlySchema = z.object({ email: email() });
 
