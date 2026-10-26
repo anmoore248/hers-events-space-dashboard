@@ -12,22 +12,10 @@ import { useAction } from "@/hooks/use-action";
 import { staffSignUp } from "@/lib/actions/auth";
 import { staffSignUpSchema, type StaffSignUpInput } from "@/lib/schemas";
 
-export function StaffSignUpForm({
-  token,
-  email,
-  name,
-}: {
-  token: string;
-  email: string;
-  name?: string;
-}) {
+export function StaffSignUpForm({ token, email, name }: { token: string; email: string; name?: string }) {
   const router = useRouter();
   const { run, pending, error } = useAction();
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<StaffSignUpInput>({
+  const { register, handleSubmit, formState: { errors } } = useForm<StaffSignUpInput>({
     resolver: zodResolver(staffSignUpSchema),
     defaultValues: { name: name ?? "" },
   });
@@ -44,49 +32,20 @@ export function StaffSignUpForm({
     <Card>
       <CardContent className="pt-5">
         <form noValidate className="grid gap-4" onSubmit={onSubmit}>
-          <FormField
-            label="Email"
-            htmlFor="email"
-            hint="Set by the invite. Another staff member can change it later."
-          >
+          <FormField label="Email" htmlFor="email" hint="Set by the invite. Another staff member can change it later.">
             <Input id="email" value={email} readOnly disabled />
           </FormField>
-          <FormField
-            label="Your name"
-            htmlFor="name"
-            error={errors.name?.message}
-          >
+          <FormField label="Your name" htmlFor="name" error={errors.name?.message}>
             <Input id="name" autoComplete="name" {...register("name")} />
           </FormField>
-          <FormField
-            label="Create password"
-            htmlFor="password"
-            hint="At least 10 characters."
-            error={errors.password?.message}
-          >
-            <Input
-              id="password"
-              type="password"
-              autoComplete="new-password"
-              {...register("password")}
-            />
+          <FormField label="Create password" htmlFor="password" hint="At least 10 characters." error={errors.password?.message}>
+            <Input id="password" type="password" autoComplete="new-password" {...register("password")} />
           </FormField>
-          <FormField
-            label="Confirm password"
-            htmlFor="confirmPassword"
-            error={errors.confirmPassword?.message}
-          >
-            <Input
-              id="confirmPassword"
-              type="password"
-              autoComplete="new-password"
-              {...register("confirmPassword")}
-            />
+          <FormField label="Confirm password" htmlFor="confirmPassword" error={errors.confirmPassword?.message}>
+            <Input id="confirmPassword" type="password" autoComplete="new-password" {...register("confirmPassword")} />
           </FormField>
           <FormError message={error} />
-          <Button type="submit" className="w-full" disabled={pending}>
-            {pending ? "Creating…" : "Create staff account"}
-          </Button>
+          <Button type="submit" className="w-full" disabled={pending}>{pending ? "Creating…" : "Create staff account"}</Button>
         </form>
       </CardContent>
     </Card>

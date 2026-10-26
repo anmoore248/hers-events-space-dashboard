@@ -1,9 +1,12 @@
 import { SiteHeader } from "@/components/layout/site-header";
 import { StaffSidebar } from "@/components/layout/staff-sidebar";
+import { requireStaff } from "@/lib/auth/session";
 
 const nav = [{ href: "/admin/account", label: "Account" }];
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
+/** Every /admin page: staff only. Attendees are sent to their dashboard. */
+export default async function AdminLayout({ children }: { children: React.ReactNode }) {
+  await requireStaff();
   return (
     <>
       <SiteHeader staff nav={nav} homeHref="/admin" signOut />

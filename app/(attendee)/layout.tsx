@@ -1,4 +1,5 @@
 import { SiteHeader } from "@/components/layout/site-header";
+import { requireUser } from "@/lib/auth/session";
 
 const nav = [
   { href: "/dashboard", label: "My events", match: ["/dashboard", "/events"] },
@@ -6,7 +7,8 @@ const nav = [
   { href: "/account", label: "Account" },
 ];
 
-export default function AttendeeLayout({ children }: { children: React.ReactNode }) {
+export default async function AttendeeLayout({ children }: { children: React.ReactNode }) {
+  await requireUser();
   return (
     <>
       <SiteHeader nav={nav} homeHref="/dashboard" signOut />

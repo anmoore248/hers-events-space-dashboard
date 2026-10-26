@@ -1,0 +1,13 @@
+# Netlify detects Next.js and adds its runtime automatically.
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+# Environment variables (Site configuration → Environment variables), per deploy context:
+#   Production:      DATABASE_URL and NEON_AUTH_BASE_URL from the Neon main branch, its service account
+#                    (NEON_AUTH_SERVICE_EMAIL / NEON_AUTH_SERVICE_PASSWORD), APP_URL = https://<your-site>.netlify.app
+#   Deploy previews: the same four from the Neon dev branch; leave APP_URL unset (each preview has its own address)
+#   All contexts:    NEON_AUTH_COOKIE_SECRET, optional SENTRY_DSN / NEXT_PUBLIC_SENTRY_DSN
