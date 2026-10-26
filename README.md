@@ -28,7 +28,7 @@ Do this for the dev branch now, and again for main before going live:
 3. **Domains:** add every address the app runs at (`https://<your-site>.netlify.app`, deploy
    previews you use). For local work, turn on **Allow localhost** on the dev branch only.
 4. **The service account.** The server uses one account, and only that account, for Neon
-   Auth's admin API. Create a user (for example `service@hersnetwork.org` with a long random
+   Auth's admin API. Create a user (for example `[any-email]@gmail.com` with a long random
    password), then give it the **admin** role (Auth → Users → ⋯ → **Make admin**, or
    `neon neon-auth user set-role <id> --roles admin`). Put its email and password in
    `NEON_AUTH_SERVICE_EMAIL` / `NEON_AUTH_SERVICE_PASSWORD`. Don't give any other account the admin role.
